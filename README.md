@@ -26,6 +26,8 @@ pip install -r requirements.txt
 ./run_demo_extra.sh
 ```
 
+The main image outputs of S2Omics applying on this demo data are listed in the /demo_main_output folder for reference.
+
 ### Data format
 
 - `he-raw.jpg`: Raw histology image.
