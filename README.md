@@ -19,6 +19,11 @@ pip install -r requirements.txt
 ./run_demo_base.sh
 ```
 
+The two main outputs of this program will be like:
+![image](https://github.com/user-attachments/assets/eafec5a0-7383-4628-9834-96e3263f80b6)
+![image](https://github.com/user-attachments/assets/a8a9ec89-6048-4510-807c-fad2b358dd28)
+
+
 To run both ROI selection and cell type broadcasting part of the demo (about 20 hours with GPU),
 ```python
 # We recommand using Python 3.11 or above
@@ -26,7 +31,9 @@ pip install -r requirements.txt
 ./run_demo_extra.sh
 ```
 
-The main image outputs of S2Omics applying on this demo data are listed in the /demo_main_output folder for reference.
+The output of cell type broadcasting program will be like:
+![image](https://github.com/user-attachments/assets/051b5e22-2ba9-4c47-a795-d8b602b42296)
+
 
 ### Data format
 
