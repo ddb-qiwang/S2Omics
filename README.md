@@ -17,3 +17,10 @@ google drive: https://drive.google.com/drive/folders/1z1nk0sF_e25LKMyHxJVMtROFju
 pip install -r requirements.txt
 ./run_demo_base.sh
 ```
+
+### Data format
+
+- `he-raw.jpg`: Raw histology image.
+- `pixel-size-raw.txt`: Side length (in micrometers) of pixels in `he-raw.jpg`. This value is usually between 0.1 and 1.0.
+- `unique_cell_type.pickle`: All cell types that appeared in the selected ROI(s).
+- `cell_type_image.pickle`: Cell type spatial distribution annotated with the spatial omics data of the selected ROI(s). Number i refers to the *i*th cell type in unique_cell_type.pickle.
