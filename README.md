@@ -30,7 +30,7 @@ pip install -r requirements.txt
 ```
 
 The output of cell type broadcasting program will be like:
-![Uploading image.png…]()
+![image](https://github.com/user-attachments/assets/adba9a05-445d-4781-a567-c4cfafdc92a7)
 
 ### Data format
 
