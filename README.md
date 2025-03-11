@@ -41,7 +41,6 @@ The output of cell type broadcasting program will be like:
 
 ## License
 
-The software package is licensed under GPL-3.0.
-For commercial use, please contact
+For commercial use of Upenn software S2Omics, please contact
 [Musu Yuan](mailto:musu990519@gmail.com) and
 [Mingyao Li](mailto:mingyao@pennmedicine.upenn.edu).
