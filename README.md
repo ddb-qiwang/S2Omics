@@ -16,7 +16,11 @@ Please place both 'checkpoint' and 'demo_breast_cancer' folder under the 'S2Omic
 
 To run the ROI selection part of the demo (about 15 minutes with GPU),
 ```python
+# download S2Omics package
+cd S2Omics-main
 # We recommand using Python 3.11 or above
+conda create -n S2Omics python=3.11
+conda activate S2Omics
 pip install -r requirements.txt
 ./run_demo_base.sh
 ```
@@ -26,8 +30,6 @@ A main output of ROI selection program will be like:
 
 To run both ROI selection and cell type broadcasting part of the demo (about 20 hours with GPU),
 ```python
-# We recommand using Python 3.11 or above
-pip install -r requirements.txt
 ./run_demo_extra.sh
 ```
 
