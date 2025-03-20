@@ -8,11 +8,11 @@ pixel_size=0.5  # desired pixel size for the whole analysis
 
 # preprocess histology image
 echo $pixel_size > ${prefix}pixel-size.txt
-#python p1_histology_preprocess.py ${prefix}
-#python p2_superpixel_quality_control.py ${prefix} --m 0.7
+python p1_histology_preprocess.py ${prefix}
+python p2_superpixel_quality_control.py ${prefix} --m 0.7
 
 # extract histology features
-#python p3_feature_extraction.py  ${prefix} --device=${device} --model_path './checkpoints/' --down_samp_step 1
+python p3_feature_extraction.py  ${prefix} --device=${device} --model_path './checkpoints/' --down_samp_step 1
 
 # get histology segmentations
 python p4_get_histology_segmentation.py ${prefix} --down_samp_step 1 --num_histology_clusters 25
