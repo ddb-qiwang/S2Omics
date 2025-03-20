@@ -71,7 +71,7 @@ def main():
     del he_embed_part
 
     [best_roi_list, best_rotate_list, best_roi_mask_list, best_comp_list, best_roi_score_list] = \
-    load_pickle(args.prefix+f'roi_selection_output/num_clusters_{args.best_num_clusters}/best_roi.pickle')
+    load_pickle(args.prefix+f'roi_selection_image_output/num_clusters_{args.best_num_clusters}/best_roi.pickle')
     best_roi = best_roi_list[-1]
     num_roi = len(best_roi)
     best_rotate = best_rotate_list[-1]
@@ -82,6 +82,7 @@ def main():
         best_roi_mask_total = best_roi_mask_total | best_roi_mask[i+1]
 
     setup_seed(42)
+    #he_embed_total = load_pickle(data_folder+'uni_embeddings_total.pickle')
     num_cell_types = len(unique_cell_type) 
     onehot_label = np.eye(len(unique_cell_type))
     train_mask = cell_type_image_mask & best_roi_mask_total
@@ -91,7 +92,7 @@ def main():
     total_y = -1*np.ones(np.sum(qc_mask), dtype='int64')
     TrainSet = TensorDataset(torch.from_numpy(train_x).float(), torch.from_numpy(train_y))
     TotalSet = TensorDataset(torch.from_numpy(total_x).float(), torch.from_numpy(total_y))
-    del he_embed_total
+    #del he_embed_total
     train_loader = DataLoader(TrainSet,shuffle=True,batch_size=512,num_workers=0,drop_last=False)
     total_loader = DataLoader(TotalSet,shuffle=False,batch_size=512,num_workers=0,drop_last=False)
 
@@ -178,14 +179,14 @@ def main():
     plt.figure(figsize=plt_figsize)
     plt.imshow(pred_image_rgb)
     ax = plt.gca()
-    legend_x = legend_y = np.zeros(num_cell_types)
-    for i in range(num_cell_types):
-        plt.scatter(legend_x, legend_y, c=color_list_16bit[i])
-    plt.legend((unique_cell_type), fontsize=12)
     for i in range(num_roi):
         ax.add_patch(plt.Rectangle([best_roi[i][0][1],best_roi[i][0][0]],
                                     window_size[1],window_size[0],color='red',fill=False,
                                     linewidth=2,angle=-best_rotate[i]))
+    legend_x = legend_y = np.zeros(num_cell_types)
+    for i in range(num_cell_types):
+        plt.scatter(legend_x, legend_y, c=color_list_16bit[i])
+    plt.legend((unique_cell_type), fontsize=12)
     plt.savefig(args.prefix+'S2Omics_prediction.jpg',
                 format='jpg', dpi=1200, bbox_inches='tight',pad_inches=0)
 
