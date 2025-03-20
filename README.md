@@ -12,6 +12,8 @@ Upenn box: https://upenn.box.com/s/e9uibep5y0wcbpl1g5d0bqngl6xci9gv
 
 google drive: https://drive.google.com/drive/folders/1z1nk0sF_e25LKMyHxJVMtROFjuWet2G_?usp=sharing
 
+Please place both 'checkpoint' and 'demo_breast_cancer' folder under the 'S2Omics' main folder.
+
 To run the ROI selection part of the demo (about 15 minutes with GPU),
 ```python
 # We recommand using Python 3.11 or above
