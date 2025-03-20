@@ -37,9 +37,12 @@ The output of cell type broadcasting program will be like:
 ### Data format
 
 - `he-raw.jpg`: Raw histology image.
-- `pixel-size-raw.txt`: Side length (in micrometers) of pixels in `he-raw.jpg`. This value is usually between 0.1 and 1.0.
-- `unique_cell_type.pickle`: All cell types that appeared in the selected ROI(s).
-- `cell_type_image.pickle`: Cell type spatial distribution annotated with the spatial omics data of the selected ROI(s). Number i refers to the *i* th cell type in unique_cell_type.pickle.
+- `pixel-size-raw.txt`: Side length (in micrometers) of pixels in `he-raw.jpg`. This value is usually between 0.1 and 1.0. For an instance, if the resolution of raw H&E image is 0.2 microns/pixel, you can just create a txt file and write down the value '0.2'.
+- `annotation_file.csv`: The annotation and spatial location of superpixels. For an instance, the first row of this table means the cell type of 827th row (top-down) 283th column (left-right) superpixel is DCIS.
+- User can refer to the demo for more detailed input information.
+
+![image](https://github.com/user-attachments/assets/276f638b-c1fd-4d68-9f72-ea795d0c30dd)
+
 
 ## License
 
