@@ -41,8 +41,7 @@ The output of cell type broadcasting program will be like:
 - `annotation_file.csv`: The annotation and spatial location of superpixels. For an instance, the first row of this table means the cell type of 827th row (top-down) 283th column (left-right) superpixel is DCIS.
 - User can refer to the demo for more detailed input information.
 
-![image](https://github.com/user-attachments/assets/276f638b-c1fd-4d68-9f72-ea795d0c30dd)
-
+![image](https://github.com/user-attachments/assets/8e2ea8e6-099a-4ed5-a0f6-0536c5754c8e)
 
 ## License
 
