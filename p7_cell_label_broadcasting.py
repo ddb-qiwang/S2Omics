@@ -27,9 +27,11 @@ import random
     Args:
         WSI_datapath: the folder of whole-slide H&E image, should contain he-raw.jpg, pixel-size-raw.jpg
         SO_datapath: the folder of Spatial Omics data, should contain he-raw.jpg, pixel-size-raw.jpg, annotation_file.csv
-        The annotation_file.csv should at least contain three columns {'super_pixel_x','super_pixel_y','annotation'} which 
-        separately refer to the x, y coordinates and cell-level annotation of superpixels in the SO-paired H&E image.
-        Notice: For some technologies like 10x Xenium, alignment between H&E and cell type spatial distribution need to be conducted.
+            The annotation_file.csv should at least contain three columns {'super_pixel_x','super_pixel_y','annotation'} which 
+            separately refer to the x, y coordinates and cell-level annotation of superpixels in the SO-paired H&E image.
+            Notice: For some technologies like 10x Xenium, alignment between H&E and cell type spatial distribution need to be
+            conducted.
+        device: default = 'cuda'
     return:
         S2Omics_whole_slide_prediction.jpg: the predicted cell label of the whole-slide H&E image.
 '''
@@ -38,6 +40,7 @@ def get_args():
     parser = argparse.ArgumentParser(description = ' ')
     parser.add_argument('WSI_datapath', type=str)
     parser.add_argument('SO_datapath', type=str)
+    parser.add_argument('--device', type=str, default='cuda')
     return parser.parse_args()
 
 def main():
@@ -116,7 +119,7 @@ def main():
     total_loader = DataLoader(TotalSet,shuffle=False,batch_size=512,num_workers=0,drop_last=False)
 
     # Train AE
-    device = torch.device('cuda:0')
+    device = args.device
     model = S2Omics_Predictor(
         n_input = 2048,
         n_enc_1=1024,
