@@ -46,7 +46,9 @@ The output of cell type broadcasting program will be like:
 - `annotation_file.csv`(optional): The annotation and spatial location of superpixels. This file is not needed for ROI selection. For an instance, the first row of this table means the cell type of 267th row (top-down) 1254th column (left-right) superpixel is Myofibroblast.
 - User can refer to the demo for more detailed input information.
 
-![image](https://github.com/user-attachments/assets/e78d29c2-0ac3-4dc5-b6b5-6a8713ef974a)
+<div align="center">
+    <img src=![image](https://github.com/user-attachments/assets/e78d29c2-0ac3-4dc5-b6b5-6a8713ef974a) alt="图片1" width="60%" style="max-width: 300px;">
+</div>
 
 
 ## License
