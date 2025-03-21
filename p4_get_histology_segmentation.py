@@ -131,7 +131,7 @@ def main():
     legend_x = legend_y = np.zeros(nclusters_new)
     for i in range(nclusters_new):
         plt.scatter(legend_x, legend_y, c=color_list_16bit[i])
-    cluster_names = [f'cluster {i}' for i in range(nclusters_new)]
+    cluster_names = [f'cluster {i}' for i in range(1, nclusters_new+1)]
     plt.legend((cluster_names), fontsize=12)
     plt.savefig(save_folder+f'default_cluster_image_num_clusters_{nclusters_new}.jpg', 
                 format='jpg', dpi=dpi, bbox_inches='tight',pad_inches=0)
