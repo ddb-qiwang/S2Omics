@@ -17,7 +17,7 @@ Please place both 'checkpoints' and 'demo_breast_cancer' folder under the 'S2Omi
 To run the ROI selection part of the demo (about 15 minutes with GPU),
 ```python
 # download S2Omics package
-cd S2Omics-main
+cd S2Omics
 # We recommand using Python 3.11 or above
 conda create -n S2Omics python=3.11
 conda activate S2Omics
