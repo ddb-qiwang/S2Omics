@@ -22,6 +22,8 @@ cd S2Omics
 conda create -n S2Omics python=3.11
 conda activate S2Omics
 pip install -r requirements.txt
+# before execution, please write privileges to the .sh files
+chmod +x run_*
 ./run_demo_base.sh
 ```
 
