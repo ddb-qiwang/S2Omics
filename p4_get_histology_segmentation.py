@@ -118,7 +118,6 @@ def main():
     fig = plt.figure(figsize=(2*plt_figsize[0],plt_figsize[1]))
     plt.subplot(1,2,1)
     dn = dendrogram(Z)
-    plt.show()
     plt.title('distances between clusters', fontsize=20)
 
     plt.subplot(1,2,2)

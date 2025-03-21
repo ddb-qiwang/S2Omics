@@ -113,7 +113,6 @@ def main():
     plt.subplot(1,2,1)
     dn = dendrogram(Z)
     plt.hlines(y=dist_thres, xmin=0, xmax=np.max(dn['icoord'])+10, color='r')
-    plt.show()
     plt.title('Distances between default clusters', fontsize=20)
 
     plt.subplot(1,2,2)
