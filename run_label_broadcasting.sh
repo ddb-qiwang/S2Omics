@@ -23,4 +23,4 @@ if [ "${WSI_datapath}" != "${SO_datapath}" ]; then
 fi
 
 # cell-level label broadcasting
-python p7_cell_label_broadcasting.py ${WSI_datapath} ${SO_datapath}
+python p7_cell_label_broadcasting.py ${WSI_datapath} ${SO_datapath} --device=${device}
