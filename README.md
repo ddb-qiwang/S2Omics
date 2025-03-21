@@ -28,7 +28,9 @@ chmod +x run_*
 ```
 
 A main output of ROI selection program will be like:
-![image](https://github.com/user-attachments/assets/6f39053c-4f74-4195-9409-9db1c8209e4d)
+<div align="center">
+    <img src=![best_roi_on_histology_segmentations_scaled](https://github.com/user-attachments/assets/870ac3ad-2b4b-482c-978c-84b8e6f5c21e) alt="roi_selection" width="60%">
+</div>
 
 
 Now, suppose we've obtained the Visium HD data based on which we annotate the superpixels inside the ROI with cell types (annotation_file.csv).To broadcast the cell type information inside the ROI to thw whole tissue slide, we can run following codes (takes about 20 hours with GPU),
@@ -47,8 +49,7 @@ The output of cell type broadcasting program will be like:
 - User can refer to the demo for more detailed input information.
 
 <div align="center">
-    <img src=![best_roi_on_histology_segmentations_scaled](https://github.com/user-attachments/assets/870ac3ad-2b4b-482c-978c-84b8e6f5c21e)
- alt="roi_selection" width="60%">
+    <img src=![image](https://github.com/user-attachments/assets/522194d4-7688-4349-b728-be981597ab18) alt="roi_selection" width="60%">
 </div>
 
 
