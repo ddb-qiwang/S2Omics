@@ -47,7 +47,8 @@ The output of cell type broadcasting program will be like:
 - User can refer to the demo for more detailed input information.
 
 <div align="center">
-    <img src=![image](https://github.com/user-attachments/assets/e78d29c2-0ac3-4dc5-b6b5-6a8713ef974a) alt="图片1" width="60%" style="max-width: 300px;">
+    <img src=![best_roi_on_histology_segmentations_scaled](https://github.com/user-attachments/assets/870ac3ad-2b4b-482c-978c-84b8e6f5c21e)
+ alt="roi_selection" width="60%">
 </div>
 
 
