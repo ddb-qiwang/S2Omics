@@ -17,7 +17,7 @@ Return:
         shapes.pickle: the shape of he and superpixels
         qc_preserve_indicator.pickle: True/False indicator of all superpixels, True means it passed quality control, False means it didn't
     --prefix (the main folder)
-    ----qc_image_output (subfolder)
+    ----p2_qc_image_output (subfolder)
         linear_boundary.jpg: the fitted RGB average-variance quadratic of all superpixels and the linear boundary to 
                              filter out superpixels with high RGB average (bright) and low RGB variance (no strcture). 
         qc_mask.jpg: the mask of all valid superpixels that have passed quality control
@@ -67,9 +67,9 @@ def get_args():
 def main():
 
     args = get_args()
-    if not os.path.exists(args.prefix+'qc_image_output'):
-        os.makedirs(args.prefix+'qc_image_output')
-    save_folder = args.prefix+'qc_image_output/'
+    if not os.path.exists(args.prefix+'p2_qc_image_output'):
+        os.makedirs(args.prefix+'p2_qc_image_output')
+    save_folder = args.prefix+'p2_qc_image_output/'
     if not os.path.exists(args.prefix+'pickle_files'):
         os.makedirs(args.prefix+'pickle_files')
     pickle_folder = args.prefix+'pickle_files/'

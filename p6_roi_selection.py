@@ -12,6 +12,7 @@ from s1_utils import (
 ''' select best ROI(s)
 Args:
     prefix: folder path of H&E stained image, '/home/H&E_image/' for an example
+    nclusters: final number of clusters for histology segmentation after merging similar groups, default = 15
     down_samp_step: the down-sampling step for feature extraction, default = 10, which refers to 1:10^2 down-sampling rate
     roi_size: the physical size (mm x mm) of ROIs, default = [6.5, 6.5] which is the physical size for Visium HD ROI
     num_roi: number of ROIs to be selected, default = 0 refers to automatic determination
@@ -19,16 +20,16 @@ Args:
     optimal_roi_thres: hyper-parameter for automatic ROI determination, default = 0.03 is suitable for most cases, recommend to be set as 0 when selecting FOVs. If you want to select more ROIs, please lower this parameter
 Return:
     --prefix (the main folder)
-        best_roi_on_histology_segmentations.jpg: the selected ROIs based on different histology segmentation results
+        best_roi_on_histology_segmentations.jpg: the selected ROIs on histology segmentation result
         best_roi_on_he.jpg: the selected ROIs on H&E image
     --prefix
-    ----roi_selection_output (subfolder)
-    ------num_cluster_{n} (subsubfolder, here n is in {7,10,13,16,19,22,25})
+    ----p6_roi_selection_output (subfolder)
+    ------num_cluster_{nclusters} (subsubfolder)
               best_roi.pickle: [best_num_roi,best_roi_list, best_rotate_list,best_roi_mask_list,best_comp_list,best_roi_score_list] 
                                contains the ROIs information for best 1/2/.../best_num_roi ROIs
               best_{n}_roi_on_histo_clusters.jpg: additional information about ROI selection based on current histology segmentation.
-                                                  the number of ROIs R is automatically determined by S2Omics, we save and show our selection
-                                                  for best R ROIs, R+1 ROIs and R+2 ROIs for reference
+                                                  the number of ROIs R is automatically determined by S2Omics, we save and show our 
+                                                  selection for best R ROIs, R+1 ROIs and R+2 ROIs for reference
 '''
 
 def euclid_distance(point1, point2):
@@ -267,6 +268,7 @@ def region_selection_random(save_folder, cluster_image, cluster_image_rgb, valid
 def get_args():
     parser = argparse.ArgumentParser(description=' ')
     parser.add_argument('prefix', type=str)
+    parser.add_argument('--nclusters', type=int, default=15)
     parser.add_argument('--down_samp_step', type=int, default=10)
     parser.add_argument('--roi_size', type=float, nargs='+', default=[6.5,6.5])
     parser.add_argument('--num_roi', type=int, default=0) # 0 means automatically determine the optimal number of ROIs
@@ -283,14 +285,17 @@ def main():
                   [188,189,34],[23,190,207],[174,199,232],[255,187,120],[152,223,138],[255,152,150],[197,176,213],
                   [196,156,148],[247,182,210],[219,219,141],[158,218,229],[16,60,90],[128,64,7],
                   [22,80,22],[107,20,20],[74,52,94],[70,43,38],[114,60,97],[94,94,17],[12,95,104],[0,0,0]]
-    
+    color_list_16bit = ['#FF7F0E', '#2CA02C', '#D62728', '#9467BD', '#8C564B',  '#E377C2', '#7F7F7F', '#BCBD22', 
+                        '#17BECF', '#AEC7E8','#FFBB78', '#98DF8A', '#FF9896', '#C5B0D5', '#C49C94',  '#F7B6D2', 
+                        '#C7C7C7', '#DBDB8D', '#9EDAE5', '#103C5A', '#804007', '#165016', '#6B1414', '#4A345E', 
+                        '#462B26', '#723C61', '#404040', '#5E5E11', '#0C5F68', '#000000']
     # load in previously obtained params
     if not os.path.exists(args.prefix+'pickle_files'):
         os.makedirs(args.prefix+'pickle_files')
     pickle_folder = args.prefix+'pickle_files/'
-    if not os.path.exists(args.prefix+f'roi_selection_output/roi_size_{args.roi_size[0]}_{args.roi_size[1]}'):
-        os.makedirs(args.prefix+f'roi_selection_output/roi_size_{args.roi_size[0]}_{args.roi_size[1]}')
-    save_folder = args.prefix+f'roi_selection_output/roi_size_{args.roi_size[0]}_{args.roi_size[1]}/'
+    if not os.path.exists(args.prefix+f'p6_roi_selection_output/roi_size_{args.roi_size[0]}_{args.roi_size[1]}'):
+        os.makedirs(args.prefix+f'p6_roi_selection_output/roi_size_{args.roi_size[0]}_{args.roi_size[1]}')
+    save_folder = args.prefix+f'p6_roi_selection_output/roi_size_{args.roi_size[0]}_{args.roi_size[1]}/'
     he = load_image(f'{args.prefix}he.jpg')
     shapes = load_pickle(pickle_folder+'shapes.pickle')
     image_shape = shapes['tiles']
@@ -316,116 +321,69 @@ def main():
     cluster_image = load_pickle(pickle_folder+'default_cluster_image.pickle')
     default_num_histology_clusters = len(np.unique(cluster_image[cluster_image>-1]))
 
-    gap = 3
-    minimum = 5
-    num_iters = (default_num_histology_clusters-minimum-1)//gap+1
-    num_histology_clusters = default_num_histology_clusters
-    plt_cluster_image_rgb_list = []
-    plt_best_roi_list = []
-    plt_best_rotate_list = []
-    plt_best_roi_score_list = []
-    for iter in range(num_iters):
-        if iter > 0:
-            num_histology_clusters = default_num_histology_clusters-iter*gap
-            cluster_image = load_pickle(pickle_folder+f'adjusted_cluster_image_num_clusters_{num_histology_clusters}.pickle')
-        target_proportion = np.ones(num_histology_clusters)
-        if len(disgard_clusters) > 0:
-            target_proportion[disgard_clusters] -= 1
-        if len(emphasize_clusters) > 0:
-            target_proportion[emphasize_clusters] += 1
-        target_proportion = target_proportion/np.sum(target_proportion)
+    num_histology_clusters = args.nclusters
+    cluster_image = load_pickle(pickle_folder+f'adjusted_cluster_image_num_clusters_{num_histology_clusters}.pickle')
+    target_proportion = np.ones(num_histology_clusters)
+    if len(disgard_clusters) > 0:
+        target_proportion[disgard_clusters] -= 1
+    if len(emphasize_clusters) > 0:
+        target_proportion[emphasize_clusters] += 1
+    target_proportion = target_proportion/np.sum(target_proportion)
     
-        cluster_image_rgb = 255*np.ones([np.shape(cluster_image)[0],np.shape(cluster_image)[1],3])
-        cluster_color_mapping = np.arange(num_histology_clusters)
-        for cluster in range(num_histology_clusters):
-            cluster_image_rgb[cluster_image==cluster] = color_list[cluster_color_mapping[cluster]]
-        cluster_image_rgb = np.array(cluster_image_rgb, dtype='int')
-        cluster_image_mask = np.full(np.shape(cluster_image), False)
-        cluster_image_mask[np.where(cluster_image>-1)] = True
+    cluster_image_rgb = 255*np.ones([np.shape(cluster_image)[0],np.shape(cluster_image)[1],3])
+    cluster_color_mapping = np.arange(num_histology_clusters)
+    for cluster in range(num_histology_clusters):
+        cluster_image_rgb[cluster_image==cluster] = color_list[cluster_color_mapping[cluster]]
+    cluster_image_rgb = np.array(cluster_image_rgb, dtype='int')
+    cluster_image_mask = np.full(np.shape(cluster_image), False)
+    cluster_image_mask[np.where(cluster_image>-1)] = True
 
-        if not os.path.exists(save_folder+f'num_clusters_{num_histology_clusters}'):
-            os.makedirs(save_folder+f'num_clusters_{num_histology_clusters}')
-        save_subfolder = save_folder+f'num_clusters_{num_histology_clusters}/'
+    if not os.path.exists(save_folder+f'num_clusters_{num_histology_clusters}'):
+        os.makedirs(save_folder+f'num_clusters_{num_histology_clusters}')
+    save_subfolder = save_folder+f'num_clusters_{num_histology_clusters}/'
         
-        # select ROIs
-        best_num_roi, best_roi_list, best_rotate_list, best_roi_mask_list, best_comp_list, best_roi_score_list = \
-        region_selection_random(save_subfolder, cluster_image, cluster_image_rgb, cluster_image_mask,
-                                num_histology_clusters, window_size, num_roi, target_proportion=target_proportion, 
-                                rotation_seg=rotation_seg, optimal_roi_thres=optimal_roi_thres, 
-                                num_samp_per_iter=num_samp, samp_step=samp_step, save_plot=True)
-        save_pickle([best_roi_list, best_rotate_list, best_roi_mask_list, best_comp_list, best_roi_score_list], 
-                    save_subfolder+'best_roi.pickle')
+    # select ROIs
+    best_num_roi, best_roi_list, best_rotate_list, best_roi_mask_list, best_comp_list, best_roi_score_list = \
+    region_selection_random(save_subfolder, cluster_image, cluster_image_rgb, cluster_image_mask,
+                            num_histology_clusters, window_size, num_roi, target_proportion=target_proportion, 
+                            rotation_seg=rotation_seg, optimal_roi_thres=optimal_roi_thres, 
+                            num_samp_per_iter=num_samp, samp_step=samp_step, save_plot=True)
+    save_pickle([best_roi_list, best_rotate_list, best_roi_mask_list, best_comp_list, best_roi_score_list], 
+                save_subfolder+'best_roi.pickle')
 
-        plt_cluster_image_rgb_list.append(cluster_image_rgb)
-        plt_best_roi_list.append(best_roi_list[-1])
-        plt_best_rotate_list.append(best_rotate_list[-1])
-        plt_best_roi_score_list.append(best_roi_score_list[-1])
-
-    length = np.ceil(np.sqrt(num_iters)).astype('int')
-    output_figsize = (length*plt_figsize[0],length*plt_figsize[1])
-    plt.figure(figsize=output_figsize)
-    cluster_image = load_pickle(pickle_folder+'default_cluster_image.pickle')
-    num_histology_clusters = default_num_histology_clusters
-    for iter in range(num_iters):
-        if iter > 0:
-            num_histology_clusters = default_num_histology_clusters-iter*gap
-            cluster_image = load_pickle(pickle_folder+f'adjusted_cluster_image_num_clusters_{num_histology_clusters}.pickle')
-        cluster_image_rgb = 255*np.ones([np.shape(cluster_image)[0],np.shape(cluster_image)[1],3])
-        cluster_color_mapping = np.arange(num_histology_clusters)
-        for cluster in range(num_histology_clusters):
-            cluster_image_rgb[cluster_image==cluster] = color_list[cluster_color_mapping[cluster]]
-        cluster_image_rgb = np.array(cluster_image_rgb, dtype='int')
-        cluster_image_mask = np.full(np.shape(cluster_image), False)
-        cluster_image_mask[np.where(cluster_image>-1)] = True
-        
-        best_roi = plt_best_roi_list[iter]
-        best_rotate = plt_best_rotate_list[iter]
-        best_roi_score = plt_best_roi_score_list[iter]
-        plt.subplot(length,length,iter+1)
-        plt.imshow(cluster_image_rgb)
-        fontdict = {'fontsize':12}
-        plt.text(1,np.shape(cluster_image)[0]-1,f'ROI score: {round(best_roi_score,3)}',fontdict=fontdict)
-        plt.title(f'num_clusters = {num_histology_clusters}', fontsize=20)
-        ax = plt.gca()
-        for i in range(len(best_roi)):
-            ax.add_patch(plt.Rectangle([best_roi[i][0][1],best_roi[i][0][0]],
-                                        window_size[1],window_size[0],color='red',fill=False,
-                                        linewidth=2,angle=-best_rotate[i]))
+    plt.figure(figsize=plt_figsize)
+    best_roi = best_roi_list[-1]
+    best_rotate = best_rotate_list[-1]
+    best_roi_score = best_roi_score_list[-1]
+    plt.imshow(cluster_image_rgb)
+    fontdict = {'fontsize':12}
+    plt.text(1,np.shape(cluster_image)[0]-1,f'ROI score: {round(best_roi_score,3)}',fontdict=fontdict)
+    plt.title(f'num_clusters = {num_histology_clusters}', fontsize=20)
+    ax = plt.gca()
+    legend_x = legend_y = np.zeros(num_histology_clusters)
+    for i in range(num_histology_clusters):
+        plt.scatter(legend_x, legend_y, c=color_list_16bit[i])
+    plt.legend(([f'Cluster {i}' for i in range(1, num_histology_clusters+1)]), fontsize=12)
+    for i in range(len(best_roi)):
+        ax.add_patch(plt.Rectangle([best_roi[i][0][1],best_roi[i][0][0]],
+                                    window_size[1],window_size[0],color='red',fill=False,
+                                    linewidth=2,angle=-best_rotate[i]))
     plt.savefig(args.prefix+'best_roi_on_histology_segmentations.jpg', 
                 format='jpg', dpi=1200, bbox_inches='tight',pad_inches=0)
     plt.close()
 
-    plt.figure(figsize=output_figsize)
-    cluster_image = load_pickle(pickle_folder+'default_cluster_image.pickle')
-    num_histology_clusters = default_num_histology_clusters
-    for iter in range(num_iters):
-        if iter > 0:
-            num_histology_clusters = default_num_histology_clusters-iter*gap
-            cluster_image = load_pickle(pickle_folder+f'adjusted_cluster_image_num_clusters_{num_histology_clusters}.pickle')
-        cluster_image_rgb = 255*np.ones([np.shape(cluster_image)[0],np.shape(cluster_image)[1],3])
-        cluster_color_mapping = np.arange(num_histology_clusters)
-        for cluster in range(num_histology_clusters):
-            cluster_image_rgb[cluster_image==cluster] = color_list[cluster_color_mapping[cluster]]
-        cluster_image_rgb = np.array(cluster_image_rgb, dtype='int')
-        cluster_image_mask = np.full(np.shape(cluster_image), False)
-        cluster_image_mask[np.where(cluster_image>-1)] = True
-
-        best_roi = plt_best_roi_list[iter]
-        best_rotate = plt_best_rotate_list[iter]
-        best_roi_score = plt_best_roi_score_list[iter]
-        plt.subplot(length,length,iter+1)
-        plt.imshow(he)
-        plt.title(f'num_clusters = {num_histology_clusters}', fontsize=20)
-        fontdict = {'fontsize':12}
-        plt.text(1,np.shape(he)[0]-1,f'ROI score: {round(best_roi_score,3)}',fontdict=fontdict)
-        ax = plt.gca()
-        for i in range(len(best_roi)):
-            ax.add_patch(plt.Rectangle([best_roi[i][0][1]*args.down_samp_step*16,
-                                        best_roi[i][0][0]*args.down_samp_step*16],
-                                        window_size[1]*args.down_samp_step*16,
-                                        window_size[0]*args.down_samp_step*16,
-                                        color='red',fill=False, linewidth=3,
-                                        angle=-best_rotate[i]))
+    plt.figure(figsize=plt_figsize)
+    plt.imshow(he)
+    plt.title(f'num_clusters = {num_histology_clusters}', fontsize=20)
+    plt.text(1,np.shape(he)[0]-1,f'ROI score: {round(best_roi_score,3)}',fontdict=fontdict)
+    ax = plt.gca()
+    for i in range(len(best_roi)):
+        ax.add_patch(plt.Rectangle([best_roi[i][0][1]*args.down_samp_step*16,
+                                    best_roi[i][0][0]*args.down_samp_step*16],
+                                    window_size[1]*args.down_samp_step*16,
+                                    window_size[0]*args.down_samp_step*16,
+                                    color='red',fill=False, linewidth=3,
+                                    angle=-best_rotate[i]))
     plt.savefig(args.prefix+'best_roi_on_he.jpg', 
                 format='jpg', dpi=1200, bbox_inches='tight',pad_inches=0)
 

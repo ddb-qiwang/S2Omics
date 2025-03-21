@@ -14,14 +14,14 @@ from s1_utils import (
 Args:
     prefix: folder path of H&E stained image, '/home/H&E_image/' for an example
     down_samp_step: the down-sampling step for feature extraction, default = 10, which refers to 1:10^2 down-sampling rate
-    num_histology_clusters: number of clusters for histology segmentation, default = 25
+    nclusters_initial: initial number of clusters for histology segmentation before merging similar groups, default = 25
 Return:
     --prefix (the main folder)
     ----pickle_files (subfolder)
         default_cluster_image.pickle: histology cluster matrix, superpixels with no cell are assigned with -1
         linkage_matrix.pickle: the linkage matrix of clustering results
     --prefix (the main folder)
-    ----histo_seg_image_output (subfolder)
+    ----p4_histo_seg_image_output (subfolder)
         default_cluster_image.jpg: including a dendrogram depicting how we merge the default clusters 
                                    and the adjusted histology segmentation, , number of clusters is set as default setting 25
 '''
@@ -30,7 +30,7 @@ def get_args():
     parser = argparse.ArgumentParser(description=' ')
     parser.add_argument('prefix', type=str)
     parser.add_argument('--down_samp_step', type=int, default=10)
-    parser.add_argument('--num_histology_clusters', type=int, default=25)
+    parser.add_argument('--nclusters_initial', type=int, default=25)
     return parser.parse_args()
 
 def main():
@@ -39,9 +39,9 @@ def main():
     if not os.path.exists(args.prefix+'pickle_files'):
         os.makedirs(args.prefix+'pickle_files')
     pickle_folder = args.prefix+'pickle_files/'
-    if not os.path.exists(args.prefix+'histo_seg_image_output'):
-        os.makedirs(args.prefix+'histo_seg_image_output')
-    save_folder = args.prefix+'histo_seg_image_output/'
+    if not os.path.exists(args.prefix+'p4_histo_seg_image_output'):
+        os.makedirs(args.prefix+'p4_histo_seg_image_output')
+    save_folder = args.prefix+'p4_histo_seg_image_output/'
     
     # load in previously obtained params
     shapes = load_pickle(pickle_folder+'shapes.pickle')
@@ -77,7 +77,7 @@ def main():
                         '#17BECF', '#AEC7E8','#FFBB78', '#98DF8A', '#FF9896', '#C5B0D5', '#C49C94',  '#F7B6D2', 
                         '#C7C7C7', '#DBDB8D', '#9EDAE5', '#103C5A', '#804007', '#165016', '#6B1414', '#4A345E', 
                         '#462B26', '#723C61', '#404040', '#5E5E11', '#0C5F68', '#000000']
-    cluster_color_mapping = np.arange(args.num_histology_clusters)
+    cluster_color_mapping = np.arange(args.nclusters_initial)
     colors = np.array(color_list_16bit)[cluster_color_mapping]
 
     setup_seed(42)
@@ -94,21 +94,21 @@ def main():
     pca_encoder = PCA(n_components=80)
     pca_encoder.fit(he_embed_qc)
     he_embed_qc_pca = pca_encoder.fit_transform(he_embed_qc)
-    uni_cluster = KMeans(n_clusters=args.num_histology_clusters).fit_predict(he_embed_qc_pca).astype('int')
+    uni_cluster = KMeans(n_clusters=args.nclusters_initial).fit_predict(he_embed_qc_pca).astype('int')
     cluster_image = -1*np.ones(image_shape)
     cluster_image[qc_mask & down_samp_mask] = uni_cluster
     cluster_image = cluster_image[down_samp_mask]
     cluster_image = np.reshape(cluster_image, [down_samp_shape[0],down_samp_shape[1]])
     histology_clusters_new = np.unique(cluster_image[cluster_image>-1])
-    num_histology_clusters_new = len(histology_clusters_new)
+    nclusters_new = len(histology_clusters_new)
     cluster_image_copy = cluster_image.copy()
-    for i in range(num_histology_clusters_new):
+    for i in range(nclusters_new):
         cluster_image[cluster_image_copy==histology_clusters_new[i]] = i
     save_pickle(cluster_image, pickle_folder+'default_cluster_image.pickle')
 
     # calculate the distances between clusters and visualize them using dendrogram
     cluster_centroids = []
-    for cluster in range(num_histology_clusters_new):
+    for cluster in range(nclusters_new):
         cluster_centroid = np.mean(he_embed_qc[uni_cluster==cluster], axis=0)
         cluster_centroids.append(cluster_centroid)
     Z = linkage(cluster_centroids, 'average')
@@ -124,17 +124,17 @@ def main():
     plt.subplot(1,2,2)
     # output rgb cluster image
     cluster_image_rgb = 255*np.ones([np.shape(cluster_image)[0],np.shape(cluster_image)[1],3])
-    for cluster in range(num_histology_clusters_new):
+    for cluster in range(nclusters_new):
         cluster_image_rgb[cluster_image==cluster] = color_list[cluster_color_mapping[cluster]]
     cluster_image_rgb = np.array(cluster_image_rgb, dtype='int')
     plt.imshow(cluster_image_rgb)
     plt.title('histology segmentation', fontsize=20)
-    legend_x = legend_y = np.zeros(num_histology_clusters_new)
-    for i in range(num_histology_clusters_new):
+    legend_x = legend_y = np.zeros(nclusters_new)
+    for i in range(nclusters_new):
         plt.scatter(legend_x, legend_y, c=color_list_16bit[i])
-    cluster_names = [f'cluster {i}' for i in range(num_histology_clusters_new)]
+    cluster_names = [f'cluster {i}' for i in range(nclusters_new)]
     plt.legend((cluster_names), fontsize=12)
-    plt.savefig(save_folder+f'default_cluster_image_num_clusters_{num_histology_clusters_new}.jpg', 
+    plt.savefig(save_folder+f'default_cluster_image_num_clusters_{nclusters_new}.jpg', 
                 format='jpg', dpi=dpi, bbox_inches='tight',pad_inches=0)
 
 

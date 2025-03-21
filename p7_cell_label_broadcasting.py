@@ -4,7 +4,6 @@
 ########################################################################################################
 
 import matplotlib.pyplot as plt
-import seaborn as sns
 import numpy as np
 import pandas as pd
 import argparse
@@ -21,78 +20,98 @@ import random
 
 
 ''' predict cell-level labels
-    warning! running this files need cell_type_image.pickle & unique_cell_type.pickle
-    cell_type_image.pickle is a image-shaped matrix indicating the cell type label (0~n-1) of superpixels, -1 means no cells in current superpixel
-    unique_cell_type.pickle is cell type names [cell_type_1,..., cell_type_n] in the order of cell_type_label (0~n-1)
-    if you want to predict the spatial domain or other cell-level label, 
-    just name the according file as cell_type_image.pickle & unique_cell_type.pickle
-Args:
-    prefix: folder path of H&E stained image, '/home/H&E_image/' for an example
-    roi_size: the physical size (mm x mm) of ROIs, default = [6.5, 6.5] which is the physical size for Visium HD ROI
-Return:
-    cell_type_prediction: predicted cell type distribution from anntations inside ROI(s) produced by pyplot
+    After user obtained the spatial omics data of the selected small ROI,
+    we can annotate the superpixels in the paired H&E image with cell type labels,
+    Afterwards, we can transfer the label information to the previously stained whole-slide H&E image 
+    to obtain whole-slide level cell type spatial distribution.
+    Args:
+        WSI_datapath: the folder of whole-slide H&E image, should contain he-raw.jpg, pixel-size-raw.jpg
+        SO_datapath: the folder of Spatial Omics data, should contain he-raw.jpg, pixel-size-raw.jpg, annotation_file.csv
+        The annotation_file.csv should at least contain three columns {'super_pixel_x','super_pixel_y','annotation'} which 
+        separately refer to the x, y coordinates and cell-level annotation of superpixels in the SO-paired H&E image.
+        Notice: For some technologies like 10x Xenium, alignment between H&E and cell type spatial distribution need to be conducted.
+    return:
+        S2Omics_whole_slide_prediction.jpg: the predicted cell label of the whole-slide H&E image.
 '''
 
 def get_args():
     parser = argparse.ArgumentParser(description = ' ')
-    parser.add_argument('prefix', type=str)
-    parser.add_argument('--best_num_clusters', type=int, default=25)
-    parser.add_argument('--roi_size', type=float, nargs='+', default=[6.5,6.5])
+    parser.add_argument('WSI_datapath', type=str)
+    parser.add_argument('SO_datapath', type=str)
     return parser.parse_args()
 
 def main():
     args = get_args()
-    if not os.path.exists(args.prefix+'pickle_files'):
-        os.makedirs(args.prefix+'pickle_files')
-    pickle_folder = args.prefix+'pickle_files/'
-    shapes = load_pickle(pickle_folder+'shapes.pickle')
-    image_shape = shapes['tiles']
-    plt_figsize = (image_shape[1]//100,image_shape[0]//100)
-    sns_figsize = (image_shape[1]//100+5,image_shape[0]//100)
-    qc_preserve_indicator = load_pickle(pickle_folder+'qc_preserve_indicator.pickle')
-    qc_mask = np.reshape(qc_preserve_indicator, image_shape)
-    unique_cell_type = load_pickle(args.prefix+'unique_cell_type.pickle')
-    cell_type_image = load_pickle(args.prefix+'cell_type_image.pickle')
+    # load in spatial omics data
+    SO_pickle_folder = args.SO_datapath+'pickle_files/'
+    shapes = load_pickle(SO_pickle_folder+'shapes.pickle')
+    SO_image_shape = shapes['tiles']
+    qc_preserve_indicator = load_pickle(SO_pickle_folder+'qc_preserve_indicator.pickle')
+    qc_mask = np.reshape(qc_preserve_indicator, SO_image_shape)
+    annotation_file = pd.read_csv(args.SO_datapath+'annotation_file.csv')
+    unique_cell_type = np.unique(annotation_file['annotation'])
+    label_vector = np.ones(len(annotation_file), dtype='int64')
+    for ct in range(len(unique_cell_type)):
+        ct_index = np.arange(len(annotation_file))[annotation_file['annotation']==unique_cell_type[ct]]
+        label_vector[ct_index] = ct
+    annotation_file['label'] = label_vector
+    cell_type_image = -1*np.ones(SO_image_shape)
+    for i in range(len(annotation_file)):
+        x = annotation_file['super_pixel_x'][annotation_file.index[i]]
+        y = annotation_file['super_pixel_y'][annotation_file.index[i]]
+        label = annotation_file['label'][annotation_file.index[i]]
+        cell_type_image[x, y] = label
+    cell_type_image = np.array(cell_type_image, dtype='int64')
     cell_type_image_mask = np.full(shapes['tiles'], False)
     cell_type_image_mask[np.where(cell_type_image>-1)] = True
-    physical_size = args.roi_size
-    window_size = [int(125*physical_size[0]),int(125*physical_size[1])]
-
-    he_embed_total = []
+    # load in the histology features of spatial omics data 
+    SO_he_embed_total = []
     i = 0
     while 1 > 0:
-        if os.path.exists(pickle_folder+f'uni_embeddings_downsamp_1_part_{i}.pickle'):
-            he_embed_part = load_pickle(pickle_folder+f'uni_embeddings_downsamp_1_part_{i}.pickle')
-            he_embed_total.append(he_embed_part)
+        if os.path.exists(SO_pickle_folder+f'uni_embeddings_downsamp_1_part_{i}.pickle'):
+            SO_he_embed_part = load_pickle(SO_pickle_folder+f'uni_embeddings_downsamp_1_part_{i}.pickle')
+            SO_he_embed_total.append(SO_he_embed_part)
             i += 1
         else:
             break
-    he_embed_total = np.concatenate(he_embed_total)
-    del he_embed_part
+    SO_he_embed_total = np.concatenate(SO_he_embed_total)
+    del SO_he_embed_part
 
-    [best_roi_list, best_rotate_list, best_roi_mask_list, best_comp_list, best_roi_score_list] = \
-    load_pickle(args.prefix+f'roi_selection_image_output/num_clusters_{args.best_num_clusters}/best_roi.pickle')
-    best_roi = best_roi_list[-1]
-    num_roi = len(best_roi)
-    best_rotate = best_rotate_list[-1]
-    best_comp = best_comp_list[-1]
-    best_roi_mask = best_roi_mask_list[-1]
-    best_roi_mask_total = best_roi_mask[0]
-    for i in range(num_roi-1):
-        best_roi_mask_total = best_roi_mask_total | best_roi_mask[i+1]
+    # load in whole-slide H&E data
+    if not os.path.exists(args.WSI_datapath+'pickle_files'):
+        os.makedirs(args.WSI_datapath+'pickle_files')
+    WSI_pickle_folder = args.WSI_datapath+'pickle_files/'
+    shapes = load_pickle(WSI_pickle_folder+'shapes.pickle')
+    WSI_image_shape = shapes['tiles']
+    plt_figsize = (WSI_image_shape[1]//100,WSI_image_shape[0]//100)
+    qc_preserve_indicator = load_pickle(WSI_pickle_folder+'qc_preserve_indicator.pickle')
+    qc_mask = np.reshape(qc_preserve_indicator, WSI_image_shape)
+    # load in the histology features of whole-lide H&E data 
+    WSI_he_embed_total = []
+    i = 0
+    while 1 > 0:
+        if os.path.exists(WSI_pickle_folder+f'uni_embeddings_downsamp_1_part_{i}.pickle'):
+            WSI_he_embed_part = load_pickle(WSI_pickle_folder+f'uni_embeddings_downsamp_1_part_{i}.pickle')
+            WSI_he_embed_total.append(WSI_he_embed_part)
+            i += 1
+        else:
+            break
+    WSI_he_embed_total = np.concatenate(WSI_he_embed_total)
+    del WSI_he_embed_part
 
+    # construct pytorch dataset, spatial omics (histo-feature, annotation) as training data
     setup_seed(42)
-    #he_embed_total = load_pickle(data_folder+'uni_embeddings_total.pickle')
     num_cell_types = len(unique_cell_type) 
     onehot_label = np.eye(len(unique_cell_type))
-    train_mask = cell_type_image_mask & best_roi_mask_total
-    train_x = he_embed_total[train_mask.flatten(),:]
+    train_mask = cell_type_image_mask
+    train_x = SO_he_embed_total[train_mask.flatten(),:]
     train_y = np.array(cell_type_image[train_mask], dtype='int64')
-    total_x = he_embed_total[qc_mask.flatten(),:]
+    del SO_he_embed_total
+    total_x = WSI_he_embed_total[qc_mask.flatten(),:]
     total_y = -1*np.ones(np.sum(qc_mask), dtype='int64')
+    del WSI_he_embed_total
     TrainSet = TensorDataset(torch.from_numpy(train_x).float(), torch.from_numpy(train_y))
     TotalSet = TensorDataset(torch.from_numpy(total_x).float(), torch.from_numpy(total_y))
-    #del he_embed_total
     train_loader = DataLoader(TrainSet,shuffle=True,batch_size=512,num_workers=0,drop_last=False)
     total_loader = DataLoader(TotalSet,shuffle=False,batch_size=512,num_workers=0,drop_last=False)
 
@@ -142,7 +161,6 @@ def main():
                     train_cor += torch.sum(pred==labels)
                     train_tot += len(labels)
             print('Epoch [%d] loss: %.3f, train accuracy %.3f' %(epoch + 1, loss.item(),train_cor/train_tot))
-            
     print('Finished Training')
 
     model.eval()
@@ -157,7 +175,8 @@ def main():
             total_pred.append(pred)
     total_pred = np.array(torch.concat(total_pred).cpu().numpy(), dtype='int')
     total_pred_ct = unique_cell_type[total_pred]
-    
+
+    # visualize the prediction results
     color_list = [[255,127,14],[44,160,44],[214,39,40],[148,103,189],[140,86,75],[227,119,194],[127,127,127],[188,189,34],
                   [23,190,207],[174,199,232],[255,187,120],[152,223,138],[255,152,150],[197,176,213],[196,156,148],[247,182,210],
                   [199,199,199],[219,219,141],[158,218,229],[16,60,90],[128,64,7],[22,80,22],[107,20,20],[74,52,94],[70,43,38],
@@ -168,26 +187,20 @@ def main():
                         '#462B26', '#723C61', '#404040', '#5E5E11', '#0C5F68', '#000000']
     ct_color_mapping = np.arange(num_cell_types)
     colors = np.array(color_list_16bit)[ct_color_mapping]
-    
-    pred_image = -1*np.ones(image_shape)
+    pred_image = -1*np.ones(WSI_image_shape)
     pred_image[qc_mask] = total_pred
-    pred_image_rgb = 255*np.ones([image_shape[0],image_shape[1],3])
+    pred_image_rgb = 255*np.ones([WSI_image_shape[0],WSI_image_shape[1],3])
     for cluster in range(num_cell_types):
         pred_image_rgb[pred_image==cluster] = color_list[ct_color_mapping[cluster]]
     pred_image_rgb = np.array(pred_image_rgb, dtype='int')
-
     plt.figure(figsize=plt_figsize)
     plt.imshow(pred_image_rgb)
     ax = plt.gca()
-    for i in range(num_roi):
-        ax.add_patch(plt.Rectangle([best_roi[i][0][1],best_roi[i][0][0]],
-                                    window_size[1],window_size[0],color='red',fill=False,
-                                    linewidth=2,angle=-best_rotate[i]))
     legend_x = legend_y = np.zeros(num_cell_types)
     for i in range(num_cell_types):
         plt.scatter(legend_x, legend_y, c=color_list_16bit[i])
     plt.legend((unique_cell_type), fontsize=12)
-    plt.savefig(args.prefix+'S2Omics_prediction.jpg',
+    plt.savefig(args.WSI_datapath+'S2Omics_whole_slide_prediction.jpg',
                 format='jpg', dpi=1200, bbox_inches='tight',pad_inches=0)
 
 if __name__ == '__main__':

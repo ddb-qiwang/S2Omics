@@ -11,22 +11,24 @@ from s1_utils import (
 '''merging histology clusters with high similarity
 Args:
     prefix: folder path of H&E stained image, '/home/H&E_image/' for an example
+    nclusters: final number of clusters for histology segmentation after merging similar groups, default = 15
 Return:
     --prefix (the main folder)
     ----pickle_files (subfolder)
         default_cluster_image.pickle: histology cluster matrix, number of clusters is set as default setting 25, 
                                       superpixels with no cell are assigned with -1
-        adjusted_cluster_image_num_clusters_{n}.pickle: adjusted histology cluster matrix, n is from {7,10,13,16,19,22}, 
-                                                        superpixels with no cell are assigned with -1
+        adjusted_cluster_image_num_clusters_{nclusters}.pickle: adjusted histology cluster matrix, 
+                                                                superpixels with no cell are assigned with -1
     --prefix (the main folder)
-    ----histo_seg_image_output (subfolder)
-        adjusted_cluster_image_num_clusters_{n}.jpg: including a dendrogram depicting how we merge the default clusters 
-                                                     and the adjusted histology segmentation, n is from {7,10,13,16,19,22}
+    ----p4_histo_seg_image_output (subfolder)
+        adjusted_cluster_image_num_clusters_{nclusters}.jpg: including a dendrogram depicting how we merge the default clusters 
+                                                             and the adjusted histology segmentation
 '''
 
 def get_args():
     parser = argparse.ArgumentParser(description=' ')
     parser.add_argument('prefix', type=str)
+    parser.add_argument('--nclusters', type=int, default=15)
     return parser.parse_args()
 
 def main():
@@ -46,9 +48,9 @@ def main():
     if not os.path.exists(args.prefix+'pickle_files'):
         os.makedirs(args.prefix+'pickle_files')
     pickle_folder = args.prefix+'pickle_files/'
-    if not os.path.exists(args.prefix+'histo_seg_image_output'):
-        os.makedirs(args.prefix+'histo_seg_image_output')
-    save_folder = args.prefix+'histo_seg_image_output/'
+    if not os.path.exists(args.prefix+'p4_histo_seg_image_output'):
+        os.makedirs(args.prefix+'p4_histo_seg_image_output')
+    save_folder = args.prefix+'p4_histo_seg_image_output/'
     shapes = load_pickle(pickle_folder+'shapes.pickle')
     image_shape = shapes['tiles']
     dpi = 1200
@@ -80,56 +82,50 @@ def main():
     fig = plt.figure(figsize=(5, 3))
     dn = dendrogram(Z)
 
-    gap = 3
-    minimum = 5
-    curr_num_clusters = num_histology_clusters
-    curr_num_merge = gap-1
-    while curr_num_clusters >= minimum+gap:
-
-        dist_thres = Z[curr_num_merge, 2]
-        curr_num_merge += gap
-        # merge cluster pairs whose distances are smaller than the threshold
-        adjusted_he_cluster = cluster_image[cluster_image>-1].copy()
-        merge_index = np.where(Z[:,2]<=dist_thres)[0]
-        for index in merge_index:
-            cluster_1 = Z[index,0]
-            cluster_2 = Z[index,1]
-            adjusted_he_cluster[adjusted_he_cluster==cluster_1] = num_histology_clusters+index
-            adjusted_he_cluster[adjusted_he_cluster==cluster_2] = num_histology_clusters+index
-        curr_cluster = 0
-        adjusted_unique_clusters = np.sort(np.unique(adjusted_he_cluster))
-        for cluster in adjusted_unique_clusters:
-            adjusted_he_cluster[adjusted_he_cluster==cluster] = curr_cluster
-            curr_cluster += 1
-        adjusted_cluster_image = cluster_image.copy()
-        adjusted_cluster_image[cluster_image>-1] = adjusted_he_cluster
-        num_adjusted_clusters = len(np.unique(adjusted_cluster_image[adjusted_cluster_image>-1]))
-        curr_num_clusters = num_adjusted_clusters
-        save_pickle(adjusted_cluster_image, pickle_folder+f'adjusted_cluster_image_num_clusters_{num_adjusted_clusters}.pickle')
-        # visualize the adjusted cluster image
-        adjusted_cluster_image_rgb = 255*np.ones([np.shape(cluster_image)[0],
-                                                  np.shape(cluster_image)[1],3])
-        for cluster in range(num_adjusted_clusters):
-            adjusted_cluster_image_rgb[adjusted_cluster_image==cluster] = color_list[cluster_color_mapping[cluster]]
-        adjusted_cluster_image_rgb = np.array(adjusted_cluster_image_rgb, dtype='int')
+    ncluster_to_reduce = num_histology_clusters - args.nclusters -1
+    dist_thres = Z[ncluster_to_reduce, 2]
+    # merge cluster pairs whose distances are smaller than the threshold
+    adjusted_he_cluster = cluster_image[cluster_image>-1].copy()
+    merge_index = np.where(Z[:,2]<=dist_thres)[0]
+    for index in merge_index:
+        cluster_1 = Z[index,0]
+        cluster_2 = Z[index,1]
+        adjusted_he_cluster[adjusted_he_cluster==cluster_1] = num_histology_clusters+index
+        adjusted_he_cluster[adjusted_he_cluster==cluster_2] = num_histology_clusters+index
+    curr_cluster = 0
+    adjusted_unique_clusters = np.sort(np.unique(adjusted_he_cluster))
+    for cluster in adjusted_unique_clusters:
+        adjusted_he_cluster[adjusted_he_cluster==cluster] = curr_cluster
+        curr_cluster += 1
+    adjusted_cluster_image = cluster_image.copy()
+    adjusted_cluster_image[cluster_image>-1] = adjusted_he_cluster
+    num_adjusted_clusters = len(np.unique(adjusted_cluster_image[adjusted_cluster_image>-1]))
+    curr_num_clusters = num_adjusted_clusters
+    save_pickle(adjusted_cluster_image, pickle_folder+f'adjusted_cluster_image_num_clusters_{num_adjusted_clusters}.pickle')
+    # visualize the adjusted cluster image
+    adjusted_cluster_image_rgb = 255*np.ones([np.shape(cluster_image)[0],
+                                                np.shape(cluster_image)[1],3])
+    for cluster in range(num_adjusted_clusters):
+        adjusted_cluster_image_rgb[adjusted_cluster_image==cluster] = color_list[cluster_color_mapping[cluster]]
+    adjusted_cluster_image_rgb = np.array(adjusted_cluster_image_rgb, dtype='int')
         
-        fig = plt.figure(figsize=(2*plt_figsize[0],plt_figsize[1]))
-        plt.subplot(1,2,1)
-        dn = dendrogram(Z)
-        plt.hlines(y=dist_thres, xmin=0, xmax=np.max(dn['icoord'])+10, color='r')
-        plt.show()
-        plt.title('Distances between default clusters', fontsize=20)
+    fig = plt.figure(figsize=(2*plt_figsize[0],plt_figsize[1]))
+    plt.subplot(1,2,1)
+    dn = dendrogram(Z)
+    plt.hlines(y=dist_thres, xmin=0, xmax=np.max(dn['icoord'])+10, color='r')
+    plt.show()
+    plt.title('Distances between default clusters', fontsize=20)
 
-        plt.subplot(1,2,2)
-        plt.imshow(adjusted_cluster_image_rgb)
-        plt.title('histology segmentation', fontsize=20)
-        legend_x = legend_y = np.zeros(num_adjusted_clusters)
-        for i in range(num_adjusted_clusters):
-            plt.scatter(legend_x, legend_y, c=color_list_16bit[i])
-        cluster_names = [f'cluster {i}' for i in range(num_adjusted_clusters)]
-        plt.legend((cluster_names), fontsize=12)
-        plt.savefig(save_folder+f'adjusted_cluster_image_num_clusters_{num_adjusted_clusters}.jpg', 
-                    format='jpg', dpi=dpi, bbox_inches='tight',pad_inches=0)
+    plt.subplot(1,2,2)
+    plt.imshow(adjusted_cluster_image_rgb)
+    plt.title('histology segmentation', fontsize=20)
+    legend_x = legend_y = np.zeros(num_adjusted_clusters)
+    for i in range(num_adjusted_clusters):
+        plt.scatter(legend_x, legend_y, c=color_list_16bit[i])
+    cluster_names = [f'cluster {i}' for i in range(num_adjusted_clusters)]
+    plt.legend((cluster_names), fontsize=12)
+    plt.savefig(save_folder+f'adjusted_cluster_image_num_clusters_{num_adjusted_clusters}.jpg', 
+                format='jpg', dpi=dpi, bbox_inches='tight',pad_inches=0)
 
 if __name__ == '__main__':
     main()
