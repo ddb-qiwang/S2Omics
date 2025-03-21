@@ -42,7 +42,7 @@ The output of cell type broadcasting program will be like:
 
 - `he-raw.jpg`: Raw histology image.
 - `pixel-size-raw.txt`: Side length (in micrometers) of pixels in `he-raw.jpg`. This value is usually between 0.1 and 1.0. For an instance, if the resolution of raw H&E image is 0.2 microns/pixel, you can just create a txt file and write down the value '0.2'.
-- `annotation_file.csv`: The annotation and spatial location of superpixels. For an instance, the first row of this table means the cell type of 827th row (top-down) 283th column (left-right) superpixel is DCIS.
+- `annotation_file.csv`(optional): The annotation and spatial location of superpixels. This file is not needed for ROI selection. For an instance, the first row of this table means the cell type of 827th row (top-down) 283th column (left-right) superpixel is DCIS.
 - User can refer to the demo for more detailed input information.
 
 ![image](https://github.com/user-attachments/assets/8e2ea8e6-099a-4ed5-a0f6-0536c5754c8e)
