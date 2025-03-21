@@ -12,9 +12,9 @@ Upenn box: https://upenn.box.com/s/e9uibep5y0wcbpl1g5d0bqngl6xci9gv
 
 google drive: https://drive.google.com/drive/folders/1z1nk0sF_e25LKMyHxJVMtROFjuWet2G_?usp=sharing
 
-Please place both 'checkpoints' and 'demo_breast_cancer' folder under the 'S2Omics' main folder.
+Please place both 'checkpoints' and 'demo_visiumhd_crc' folder under the 'S2Omics' main folder.
 
-To run the ROI selection part of the demo (about 15 minutes with GPU),
+In this demo, we mimic the situation that we need to select a 6.5 mm*6.5 mm ROI for Visium HD experiment from a colorectal cancer tissue section. To run the ROI selection (takes about 25 minutes with GPU),
 ```python
 # download S2Omics package
 cd S2Omics
@@ -24,15 +24,16 @@ conda activate S2Omics
 pip install -r requirements.txt
 # before execution, please write privileges to the .sh files
 chmod +x run_*
-./run_demo_base.sh
+./run_demo_roi_selection.sh
 ```
 
 A main output of ROI selection program will be like:
-![image](https://github.com/user-attachments/assets/78d27db4-a740-4605-b440-5dc1a07a93b7)
+![image](https://github.com/user-attachments/assets/6f39053c-4f74-4195-9409-9db1c8209e4d)
 
-To run both ROI selection and cell type broadcasting part of the demo (about 20 hours with GPU),
+
+Now, suppose we've obtained the Visium HD data based on which we annotate the superpixels inside the ROI with cell types (annotation_file.csv).To broadcast the cell type information inside the ROI to thw whole tissue slide, we can run following codes (takes about 20 hours with GPU),
 ```python
-./run_demo_extra.sh
+./run_demo_label_broadcasting.sh
 ```
 
 The output of cell type broadcasting program will be like:
@@ -42,10 +43,11 @@ The output of cell type broadcasting program will be like:
 
 - `he-raw.jpg`: Raw histology image.
 - `pixel-size-raw.txt`: Side length (in micrometers) of pixels in `he-raw.jpg`. This value is usually between 0.1 and 1.0. For an instance, if the resolution of raw H&E image is 0.2 microns/pixel, you can just create a txt file and write down the value '0.2'.
-- `annotation_file.csv`(optional): The annotation and spatial location of superpixels. This file is not needed for ROI selection. For an instance, the first row of this table means the cell type of 827th row (top-down) 283th column (left-right) superpixel is DCIS.
+- `annotation_file.csv`(optional): The annotation and spatial location of superpixels. This file is not needed for ROI selection. For an instance, the first row of this table means the cell type of 267th row (top-down) 1254th column (left-right) superpixel is Myofibroblast.
 - User can refer to the demo for more detailed input information.
 
-![image](https://github.com/user-attachments/assets/8e2ea8e6-099a-4ed5-a0f6-0536c5754c8e)
+![image](https://github.com/user-attachments/assets/e78d29c2-0ac3-4dc5-b6b5-6a8713ef974a)
+
 
 ## License
 
