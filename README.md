@@ -49,7 +49,7 @@ The output of cell type broadcasting program will be like:
 - User can refer to the demo for more detailed input information.
 
 <div align="center">
-    <img src=![image](https://github.com/user-attachments/assets/522194d4-7688-4349-b728-be981597ab18) alt="roi_selection" width="60%">
+    <img src=![image](https://github.com/user-attachments/assets/522194d4-7688-4349-b728-be981597ab18) alt="annotation file format" width="60%">
 </div>
 
 
