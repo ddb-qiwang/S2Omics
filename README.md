@@ -12,7 +12,7 @@ To run the demo, first please download the demo data and pretrained model file f
 
 google drive: https://drive.google.com/drive/folders/1z1nk0sF_e25LKMyHxJVMtROFjuWet2G_?usp=sharing
 
-Please place both 'checkpoints' and 'demo_visiumhd_crc' folder under the 'S2Omics' main folder.
+Please place both 'checkpoints' and 'demo' folder under the 'S2Omics' main folder.
 
 In this demo, we mimic the situation that we need to select a 6.5 mm*6.5 mm ROI for Visium HD experiment from a colorectal cancer tissue section. To run the ROI selection (takes about 25 minutes with GPU),
 ```python
