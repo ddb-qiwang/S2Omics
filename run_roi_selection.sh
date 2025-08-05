@@ -30,6 +30,6 @@ python p5_merge_over_clusters.py ${prefix} --save_folder ${save_folder} --target
 # roi_size refers the physical size of ROI to be selected, 
 # here we are selecting 1 ROI for Visium HD experiment, so roi_size should be 6.5 6.5
 # if user want S2Omics to automatically determine the optimal number of ROIs, please set num_roi as 0
-python p6_roi_selection_rectangle.py ${prefix} --save_folder ${save_folder} --num_roi ${num_roi} --roi_size ${roi_size} ${roi_size}
+python p6_roi_selection_rectangle.py ${prefix} --save_folder ${save_folder} --num_roi ${num_roi} --roi_size ${roi_size} ${roi_size} --fusion_weights 0.3 0.3 0.4
 # if user what to select TMA cores or other circle-shaped ROIs, a 3mm-radius circle for an instance
-# python p6_roi_selection_circle.py ${prefix} --save_folder ${save_folder} --num_roi 1 --roi_size 3 3
+#python p6_roi_selection_circle.py ${prefix} --save_folder ${save_folder} --num_roi 1 --roi_size 3 3 --fusion_weights 0.3 0.3 0.4
