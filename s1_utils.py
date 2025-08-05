@@ -1,5 +1,6 @@
 import itertools
 from PIL import Image
+import tifffile
 import pickle
 import os
 
@@ -47,6 +48,9 @@ def mkdir(path):
 
 
 def load_image(filename, verbose=True):
+    if filename.endswith("tif"):
+        img = tifffile.imread(filename)
+        return img
     img = Image.open(filename)
     img = np.array(img)
     if img.ndim == 3 and img.shape[-1] == 4:
@@ -54,7 +58,6 @@ def load_image(filename, verbose=True):
     if verbose:
         print(f'Image loaded from {filename}')
     return img
-
 
 def load_mask(filename, verbose=True):
     mask = load_image(filename, verbose=verbose)

@@ -1,154 +1,486 @@
 import os
-import torch
-from torchvision import transforms
-import timm
-import numpy as np
-from s1_utils import save_pickle, load_image
-from PIL import Image
-import tqdm
+import sys
+sys.path.append('./HIPT')
+from time import time
 import argparse
-from torch.utils.data import Dataset, DataLoader
-from typing import Any, Callable, Dict, Optional, Set, Tuple, Type, Union, List
+
+from einops import rearrange, reduce, repeat
+import numpy as np
+import skimage
+import torch
+import torch.nn as nn
+from hipt_model_utils import eval_transforms
+from hipt_4k import HIPT_4K
+from s1_utils import load_image, load_pickle, save_pickle, join
+from image import upscale, smoothen
+# from distill import distill_embeddings
+from connected_components import get_largest_connected
 
 
-'''extracting hierarchical features of superpixels using a modified version of UNI
-Args:
-    prefix: folder path of H&E stained image, '/home/H&E_image/' for an example
-    model_path: the path to UNI parameter files (pytorch_model.bin), ./checkpoints/ for an example
-    device: default = 'cuda'
-    batch_size: default = 128
-    down_samp_step: the down-sampling step, default = 10 refers to only extract features for superpixels whose row_index and col_index can both be divided by 10 (roughly 1:100 down-sampling rate). down_samp_step = 1 means extract features for every superpixel
-    num_workers: default = 4
-Return:
-    {args.prefix}uni_embeddings_downsamp_{args.down_samp_step}_part_{part_cnts}.pickle: part_cnts: 0, 1, 2,... Save the files into several subfiles ensures every pickle file contains no more than features for 100,000 superpixels and can avoid memory overflow
-'''
+def load_mask(filename):
+    mask = load_image(filename)
+    mask = mask > 0
+    if mask.ndim == 3:
+        mask = mask.any(2)
+    factor = 16
+    mask = reduce(
+            mask.astype(np.float32),
+            '(h0 h1) (w0 w1) -> h0 w0', 'mean',
+            h1=factor, w1=factor) > 0.5
+    return mask
 
-class PatchDataset(Dataset):
-    def __init__(self, image, patch_size=16, stride=16):
-        self.image = image
-        self.patch_size = patch_size
-        self.stride = stride
-        self.transform = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
-        ])
-        
-        self.shape_ori = np.array(image.shape[:2])
-        self.num_patches = ((self.shape_ori - patch_size) // stride + 1)
-        self.total_patches = self.num_patches[0] * self.num_patches[1]
 
-    def __len__(self):
-        return self.total_patches
+def match_foregrounds(embs, largest_only=False):
+    print('Matching foregrounds...')
+    t0 = time()
+    channels = np.concatenate(list(embs.values()))
+    mask = np.isfinite(channels).all(0)
+    if largest_only:
+        mask = get_largest_connected(mask)
+    for group, channels in embs.items():
+        for chan in channels:
+            chan[~mask] = np.nan
+    print(int(time() - t0), 'sec')
 
-    def __getitem__(self, idx):
-        i = (idx // self.num_patches[1]) * self.stride
-        j = (idx % self.num_patches[1]) * self.stride
-        
-        # Extract 224x224 patch centered on the 16x16 patch
-        center_i, center_j = i + 8, j + 8
-        start_i, start_j = max(0, center_i - 112), max(0, center_j - 112)
-        end_i, end_j = min(self.shape_ori[0], center_i + 112), min(self.shape_ori[1], center_j + 112)
-        
-        patch = self.image[start_i:end_i, start_j:end_j]
-        
-        # Pad if necessary to ensure 224x224 size
-        if patch.shape[0] < 224 or patch.shape[1] < 224:
-            padded_patch = np.zeros((224, 224, 3), dtype=patch.dtype)
-            padded_patch[(224-patch.shape[0])//2:(224-patch.shape[0])//2+patch.shape[0], 
-                         (224-patch.shape[1])//2:(224-patch.shape[1])//2+patch.shape[1]] = patch
-            patch = padded_patch
-        
-        patch = Image.fromarray(patch.astype('uint8')).convert('RGB')
-        return self.transform(patch), (i, j)
+
+def patchify(x, patch_size):
+    shape_ori = np.array(x.shape[:2])
+    shape_ext = (
+            (shape_ori + patch_size - 1)
+            // patch_size * patch_size)
+    x = np.pad(
+            x,
+            (
+                (0, shape_ext[0] - x.shape[0]),
+                (0, shape_ext[1] - x.shape[1]),
+                (0, 0)),
+            mode='edge')
+    tiles_shape = np.array(x.shape[:2]) // patch_size
+    # x = rearrange(
+    #         x, '(h1 h) (w1 w) c -> h1 w1 h w c',
+    #         h=patch_size, w=patch_size)
+    # x = rearrange(
+    #         x, '(h1 h) (w1 w) c -> (h1 w1) h w c',
+    #         h=patch_size, w=patch_size)
+    tiles = []
+    for i0 in range(tiles_shape[0]):
+        a0 = i0 * patch_size  # TODO: change to patch_size[0]
+        b0 = a0 + patch_size  # TODO: change to patch_size[0]
+        for i1 in range(tiles_shape[1]):
+            a1 = i1 * patch_size  # TODO: change to patch_size[1]
+            b1 = a1 + patch_size  # TODO: change to patch_size[1]
+            tiles.append(x[a0:b0, a1:b1])
+
+    shapes = dict(
+            original=shape_ori,
+            padded=shape_ext,
+            tiles=tiles_shape)
+    return tiles, shapes
+
+
+def get_data(prefix):
+    img = load_image(f'{prefix}he.jpg')
+    return img
+
+
+def get_embeddings_sub(model, x):
+    x = x.astype(np.float32) / 255.0
+    x = eval_transforms()(x)
+    x_cls, x_sub = model.forward_all256(x[None])
+    x_cls = x_cls.cpu().detach().numpy()
+    x_sub = x_sub.cpu().detach().numpy()
+    x_cls = x_cls[0].transpose(1, 2, 0)
+    x_sub = x_sub[0].transpose(1, 2, 3, 4, 0)
+    return x_cls, x_sub
+
+
+def get_embeddings_cls(model, x):
+    x = torch.tensor(x.transpose(2, 0, 1))
+    with torch.no_grad():
+        __, x_sub4k = model.forward_all4k(x[None])
+    x_sub4k = x_sub4k.cpu().detach().numpy()
+    x_sub4k = x_sub4k[0].transpose(1, 2, 0)
+    return x_sub4k
+
+
+def get_embeddings(img, pretrained=True, device='cuda', ckpt_path='./checkpoints/'):
+    '''
+    Extract embeddings from histology tiles
+    Args:
+        tiles: Histology image tiles.
+            Shape: (N, H, W, C).
+            `H` and `W` are both divisible by 256.
+            Channels `C` include R, G, B, foreground mask.
+    Returns:
+        emb_cls: Embeddings of (256 x 256)-sized patches
+            Shape: (H/256, W/256, 384)
+        emb_sub: Embeddings of (16 x 16)-sized patches
+            Shape: (H/16, W/16, 384)
+    '''
+    print('Extracting embeddings...')
+    t0 = time()
+
+    tile_size = 4096
+    tiles, shapes = patchify(img, patch_size=tile_size)
+
+    model256_path, model4k_path = None, None
+    if pretrained:
+        model256_path = ckpt_path+'vit256_small_dino.pth'
+        model4k_path = ckpt_path+'vit4k_xs_dino.pth'
+    model = HIPT_4K(
+            model256_path=model256_path,
+            model4k_path=model4k_path,
+            device256=device, device4k=device)
+    model.eval()
+    patch_size = (256, 256)
+    subpatch_size = (16, 16)
+    n_subpatches = tuple(
+            a // b for a, b in zip(patch_size, subpatch_size))
+
+    emb_sub = []
+    emb_mid = []
+    for i in range(len(tiles)):
+        if i % 10 == 0:
+            print('tile', i, '/', len(tiles))
+        x_mid, x_sub = get_embeddings_sub(model, tiles[i])
+        emb_mid.append(x_mid)
+        emb_sub.append(x_sub)
+    del tiles
+    torch.cuda.empty_cache()
+    emb_mid = rearrange(
+            emb_mid, '(h1 w1) h2 w2 k -> (h1 h2) (w1 w2) k',
+            h1=shapes['tiles'][0], w1=shapes['tiles'][1])
+
+    emb_cls = get_embeddings_cls(model, emb_mid)
+    del emb_mid, model
+    torch.cuda.empty_cache()
+
+    shape_orig = np.array(shapes['original']) // subpatch_size
+
+    chans_sub = []
+    for i in range(emb_sub[0].shape[-1]):
+        chan = rearrange(
+                np.array([e[..., i] for e in emb_sub]),
+                '(h1 w1) h2 w2 h3 w3 -> (h1 h2 h3) (w1 w2 w3)',
+                h1=shapes['tiles'][0], w1=shapes['tiles'][1])
+        chan = chan[:shape_orig[0], :shape_orig[1]]
+        chans_sub.append(chan)
+    del emb_sub
+
+    chans_cls = []
+    for i in range(emb_cls[0].shape[-1]):
+        chan = repeat(
+                np.array([e[..., i] for e in emb_cls]),
+                'h12 w12 -> (h12 h3) (w12 w3)',
+                h3=n_subpatches[0], w3=n_subpatches[1])
+        chan = chan[:shape_orig[0], :shape_orig[1]]
+        chans_cls.append(chan)
+    del emb_cls
+
+    print(int(time() - t0), 'sec')
+
+    return chans_cls, chans_sub
+
+
+def get_embeddings_shift(
+        img, margin=256, stride=64,
+        pretrained=True, device='cuda',
+        ckpt_path = './checkpoints/'):
+    # margin: margin for shifting. Divisble by 256
+    # stride: stride for shifting. Divides `margin`.
+    factor = 16  # scaling factor between cls and sub. Fixed
+    shape_emb = np.array(img.shape[:2]) // factor
+    chans_cls = [
+            np.zeros(shape_emb, dtype=np.float32)
+            for __ in range(192)]
+    chans_sub = [
+            np.zeros(shape_emb, dtype=np.float32)
+            for __ in range(384)]
+    start_list = list(range(0, margin, stride))
+    n_reps = 0
+    for start0 in start_list:
+        for start1 in start_list:
+            print(f'shift {start0}/{margin}, {start1}/{margin}')
+            t0 = time()
+            stop0, stop1 = -margin+start0, -margin+start1
+            im = img[start0:stop0, start1:stop1]
+            cls, sub = get_embeddings(im, pretrained=pretrained, device=device, ckpt_path=ckpt_path)
+            del im
+            sta0, sta1 = start0 // factor, start1 // factor
+            sto0, sto1 = stop0 // factor, stop1 // factor
+            for i in range(len(chans_cls)):
+                chans_cls[i][sta0:sto0, sta1:sto1] += cls[i]
+            del cls
+            for i in range(len(chans_sub)):
+                chans_sub[i][sta0:sto0, sta1:sto1] += sub[i]
+            del sub
+            n_reps += 1
+            print(int(time() - t0), 'sec')
+
+    mar = margin // factor
+    for chan in chans_cls:
+        chan /= n_reps
+        chan[-mar:] = 0.0
+        chan[:, -mar:] = 0.0
+    for chan in chans_sub:
+        chan /= n_reps
+        chan[-mar:] = 0.0
+        chan[:, -mar:] = 0.0
+
+    return chans_cls, chans_sub
+
+
+def reshape_embeddings(emb_cls, emb_sub, tiles_shape):
+    # emb_cls = emb_cls.reshape(tiles_shape + emb_cls.shape[1:])
+    # emb_sub = emb_sub.reshape(tiles_shape + emb_sub.shape[1:])
+    emb_cls = rearrange(
+            emb_cls, '(h1 w1) h2 w2 k -> (h1 h2) (w1 w2) k',
+            h1=tiles_shape[0], w1=tiles_shape[1])
+    # emb_sub = rearrange(
+    #         emb_sub, 'h1 w1 h2 w2 h3 w3 k -> (h1 h2 h3) (w1 w2 w3) k')
+    return emb_cls, emb_sub
+
+
+def transpose_channels(x):
+    return [x[..., i] for i in range(x.shape[-1])]
+
+
+def transpose_embeddings(embs, groups=None):
+    if groups is None:
+        groups = embs.keys()
+    out = {}
+    for key, chans in embs.items():
+        if key in groups:
+            out[key] = transpose_channels(chans)
+        else:
+            out[key] = chans
+    return out
+
+
+def match_resolutions(embs, target_shape, groups=None):
+    if groups is None:
+        groups = embs.keys()
+    out = {}
+    for grp, em in embs.items():
+        if grp in groups:
+            print(f'Matching {grp} embedding resolutions...')
+            t0 = time()
+            em = [
+                    upscale(im[..., np.newaxis], target_shape)[..., 0]
+                    for im in em]
+            print(int(time() - t0), 'sec')
+        out[grp] = em
+
+    return out
+
+
+def combine_embs(embs):
+    embs_new = {}
+    for key, channels in embs.items():
+        channels = [c - np.nanmean(c) for c in channels]
+        variances = [np.nanmean(c**2) for c in channels]
+        std = np.sum(variances)**0.5
+        channels = [c / std for c in channels]
+        embs_new[key] = channels
+    embs_new = join(list(embs_new.values()))
+    return embs_new
+
+
+def rearrange_slide(tiles, shape):
+    tiles = rearrange(
+            tiles, '(h1 w1) h w c -> (h1 h) (w1 w) c',
+            h1=shape[0], w1=shape[1])
+    return tiles
+
+
+def downscale(x, factors):
+    x = reduce(
+            x, '(h1 h) (w1 w) c -> h1 w1 c', 'mean',
+            h=factors[0], w=factors[1])
+    return x
+
+
+def downscale_embedding(emb_dict, factor, groups=None):
+    if groups is None:
+        groups = emb_dict.keys()
+    print('Downscaling slides...')
+    t0 = time()
+    factor = (factor, factor)
+    y = {}
+    for key, channel_list in emb_dict.items():
+        if key in groups:
+            channel_list_new = [
+                downscale(channel[..., np.newaxis], factor)[..., 0]
+                for channel in channel_list]
+        else:
+            channel_list_new = channel_list
+        y[key] = channel_list_new
+    print(int(time() - t0), 'sec')
+    return y
+
+
+def save_embeddings(x, outfile):
+    print('Saving embeddings...')
+    t0 = time()
+    save_pickle(x, outfile)
+    print(int(time() - t0), 'sec')
+    print('Embeddings saved to', outfile)
+
 
 def get_args():
-    parser = argparse.ArgumentParser(description=' ')
+    parser = argparse.ArgumentParser()
     parser.add_argument('prefix', type=str)
-    parser.add_argument('--model_path', type=str, default='./checkpoints/')
+    parser.add_argument('--save_folder', type=str, default='S2Omics_output')
     parser.add_argument('--device', type=str, default='cuda')
-    parser.add_argument('--batch_size', type=int, default=128)
-    parser.add_argument('--down_samp_step', type=int, default=10)
-    parser.add_argument('--num_workers', type=int, default=4)
-    return parser.parse_args()
+    parser.add_argument('--ckpt_path', type=str, default='./checkpoints/')
+    parser.add_argument('--no-shift', action='store_true')
+    parser.add_argument('--smoothen_method', type=str, default='cv')
+    args = parser.parse_args()
+    return args
 
-def create_model(local_dir):
-    model = timm.create_model(
-        "vit_large_patch16_224", 
-        img_size=224, 
-        patch_size=16, 
-        init_values=1e-5, 
-        num_classes=0,  # This ensures no classification head
-        global_pool='',  # This removes global pooling
-    )
-    model.load_state_dict(torch.load(os.path.join(local_dir, "pytorch_model.bin"), map_location="cpu"), strict=False)
-    return model
 
-@torch.inference_mode()
-def extract_features(model, batch):
-    # Get 224-level embedding
-    feature_emb = model(batch)
-    
-    # Get 16-level embedding
-    _, intermediates = model.forward_intermediates(batch, return_prefix_tokens=False)
-    patch_emb = intermediates[-1]  # Use the last intermediate output
-    
-    return feature_emb, patch_emb
+# TODO: try more sophisticated methods in HistomicsTK
+def color_deconvolution(x):
+    mask = np.isfinite(x)
+    x[~mask] = 0.0
+    x = (x * 255).astype(np.uint8)
+    x = skimage.color.rgb2hed(x)
+    x[~mask] = np.nan
+    return x
 
-@torch.inference_mode()
+
+def recolor(tiles):
+    h1, w1 = tiles.shape[:2]  # number of tiles
+    h2, w2 = 16, 16  # number of patches
+
+    tiles = rearrange(
+            tiles,
+            'h1 w1 (h2 h) (w2 w) c -> '
+            '(h1 w1 h2 w2) h w c',
+            h2=h2, w2=w2)
+    tiles = [color_deconvolution(t) for t in tiles]
+    tiles = rearrange(
+            tiles,
+            '(h1 w1 h2 w2) (h w) c ->'
+            'h1 w1 (h2 h) (w2 w) c',
+            h1=h1, w1=w1, h2=h2, w2=w2)
+    return tiles
+
+
+def smoothen_embeddings(
+        embs, size, kernel,
+        method='cv', groups=None, device='cuda'):
+    if groups is None:
+        groups = embs.keys()
+    out = {}
+    for grp, em in embs.items():
+        if grp in groups:
+            if isinstance(em, list):
+                smoothened = [
+                        smoothen(
+                            c[..., np.newaxis], size=size,
+                            kernel=kernel, backend=method,
+                            device=device)[..., 0]
+                        for c in em]
+            else:
+                smoothened = smoothen(em, size, method, device=device)
+        else:
+            smoothened = em
+        out[grp] = smoothened
+    return out
+
+
+def adjust_weights(embs, weights=None):
+    print('Adjusting weights...')
+    t0 = time()
+    if weights is None:
+        weights = {grp: 1.0 for grp in embs.keys()}
+    for grp in embs.keys():
+        channels = embs[grp]
+        wt = weights[grp]
+        means = np.array([np.nanmean(chan) for chan in channels])
+        std = np.sum([np.nanvar(chan) for chan in channels])**0.5
+        for chan, me in zip(channels, means):
+            chan[:] -= me
+            chan[:] /= std
+            chan[:] *= wt**0.5
+    print(int(time() - t0), 'sec')
+
+
+def quantize(x, labels, hardness=0.5):
+    y = np.full_like(x, np.nan)
+    for lab in np.unique(labels):
+        isin = lab == labels
+        y[isin] = x[isin].mean(0) * hardness + x[isin] * (1 - hardness)
+    return y
+
+
 def main():
     args = get_args()
 
-    if not os.path.exists(args.prefix+'pickle_files'):
-        os.makedirs(args.prefix+'pickle_files')
-    pickle_folder = args.prefix+'pickle_files/'
-    
-    local_dir = args.model_path
-    model = create_model(local_dir)
-    
-    device = torch.device(args.device)
-    model = model.to(device)
-    model.eval()
-    
-    he = load_image(f'{args.prefix}he.jpg')
-    dataset = PatchDataset(he, stride=16*args.down_samp_step)
-    save_pickle(dataset.num_patches, pickle_folder+'num_patches.pickle')
-    dataloader = DataLoader(dataset, shuffle=False, batch_size=args.batch_size, num_workers=args.num_workers, pin_memory=True)
+    if '/' not in args.save_folder:
+        save_folder = args.prefix+args.save_folder
+    if not os.path.exists(args.prefix+args.save_folder):
+        os.makedirs(args.prefix+args.save_folder)
+    save_folder = args.prefix+args.save_folder+'/'
+    if not os.path.exists(save_folder+'pickle_files'):
+        os.makedirs(save_folder+'pickle_files')
+    pickle_folder = save_folder+'pickle_files/'
 
-    patch_embeddings = []
-    part_cnts = 0
-    for batch_idx, (patches, positions) in enumerate(tqdm.tqdm(dataloader, total=len(dataloader))):
+    np.random.seed(0)
+    torch.manual_seed(0)
 
-        patches = patches.to(device, non_blocking=True)
-        
-        if batch_idx == 0:
-            print(f"Batch {batch_idx}:")
-            print(f"Shape of patches: {patches.shape}")
-            print(f"Shape of positions[0]: {positions[0].shape}")
-            print(f"Content of positions[0][:10]: {positions[0][:10]}")
-            print(f"Content of positions[1][:10]: {positions[1][:10]}")
-        
-        feature_emb, patch_emb = extract_features(model, patches)
-        
-        if batch_idx == 0:
-            print(f"Shape of feature_emb: {feature_emb.shape}")
-            print(f"Shape of patch_emb: {patch_emb.shape}")
-        
-        # Process each patch
-        for idx in range(len(positions[0])):
-            
-            # Extract features
-            center_feature = feature_emb[idx, 0]
-            patch_feature = patch_emb[idx, :, 7, 7]
-            
-            # Concatenate 224-level and 16-level features
-            combined_feature = torch.cat([center_feature, patch_feature])
-            patch_embeddings.append(combined_feature.cpu().numpy())
-            
-        if (batch_idx*args.batch_size)//100000 < ((batch_idx+1)*args.batch_size)//100000 or batch_idx == len(dataloader) - 1:
-            print(f"Part {part_cnts} patch number: {len(patch_embeddings)}")
-            save_pickle(patch_embeddings, pickle_folder+f'uni_embeddings_downsamp_{args.down_samp_step}_part_{part_cnts}.pickle')
-            patch_embeddings = []
-            part_cnts += 1
+    # load data
+    wsi = get_data(prefix=args.prefix)
+
+     # extract HIPT embeddings
+    if not args.no_shift:
+        emb_cls, emb_sub = get_embeddings_shift(
+                wsi, pretrained=True,
+                device = args.device,
+                ckpt_path = args.ckpt_path)
+    else:
+        emb_cls, emb_sub = get_embeddings(
+                wsi, pretrained=True,
+                device = args.device,
+                ckpt_path = args.ckpt_path)
+    embs = dict(cls=emb_cls, sub=emb_sub)
+
+    embs['rgb'] = np.stack([
+            reduce(
+                wsi[..., i].astype(np.float16) / 255.0,
+                '(h1 h) (w1 w) -> h1 w1', 'mean',
+                h=16, w=16).astype(np.float32)
+            for i in range(3)])
+    del wsi
+
+    # smoothen embeddings
+    if args.smoothen_method is not None:
+        print('Smoothening cls embeddings...')
+        t0 = time()
+        embs = smoothen_embeddings(
+                embs, size=16, kernel='uniform', groups=['cls'],
+                method=args.smoothen_method,
+                device=args.device)
+        print('runtime:', int(time()-t0))
+
+        print('Smoothening sub embeddings...')
+        t0 = time()
+        embs = smoothen_embeddings(
+                embs, size=4, kernel='uniform', groups=['sub'],
+                method=args.smoothen_method,
+                device=args.device)
+        print('runtime:', int(time()-t0))
+
+    cls_feature_flatten = np.reshape(np.array(embs['cls']).transpose(1,2,0), [-1,192])
+    sub_feature_flatten = np.reshape(np.array(embs['sub']).transpose(1,2,0), [-1,384])
+    del embs
+    cls_feature_flatten = nn.LayerNorm(192, eps=1e-6)(torch.from_numpy(cls_feature_flatten))
+    sub_feature_flatten = nn.LayerNorm(384, eps=1e-6)(torch.from_numpy(sub_feature_flatten))
+    hipt_feature_embed = torch.concat([cls_feature_flatten, sub_feature_flatten], axis=-1).detach().cpu().numpy()
+
+    save_embeddings(hipt_feature_embed, pickle_folder + 'hipt_embeddings.pickle')
+
 
 if __name__ == '__main__':
     main()

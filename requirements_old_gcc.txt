@@ -27,6 +27,7 @@ hf-xet==1.1.5
 huggingface-hub==0.33.2
 idna==3.10
 igraph==0.11.9
+imagecodecs==2025.3.30
 imageio==2.37.0
 ipykernel==6.29.5
 ipython==8.37.0
@@ -54,7 +55,7 @@ ndindex==1.10.0
 nest-asyncio==1.6.0
 networkx==3.4.2
 numba==0.61.2
-numexpr==2.11.0
+numexpr==2.8.7
 numpy==1.26.0
 nvidia-cublas-cu11==11.10.3.66
 nvidia-cuda-cupti-cu11==11.7.101
@@ -74,7 +75,6 @@ parso==0.8.4
 patsy==1.0.1
 pexpect==4.9.0
 Pillow==10.0.0
-pip==24.2
 platformdirs==4.3.8
 prompt_toolkit==3.0.51
 propcache==0.3.2
@@ -91,7 +91,7 @@ pytorch-lightning==2.0.8
 pytz==2025.2
 PyWavelets==1.8.0
 PyYAML==6.0.2
-pyzmq==27.0.0
+pyzmq==26.4.0
 regex==2024.11.6
 requests==2.32.4
 safetensors==0.5.3
@@ -102,7 +102,6 @@ scikit-learn==1.7.0
 scipy==1.14.0
 seaborn==0.13.2
 session-info2==0.1.2
-setuptools==75.1.0
 sinfo==0.3.4
 six==1.17.0
 stack-data==0.6.3
@@ -130,6 +129,5 @@ tzdata==2025.2
 umap-learn==0.5.9.post2
 urllib3==2.5.0
 wcwidth==0.2.13
-wheel==0.44.0
 yarl==1.20.1
 harmonypy==0.0.10
