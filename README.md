@@ -10,8 +10,6 @@ S2Omics is an end-to-end workflow that automatically selects regions of interest
 # Get started
 To run the demo, first please download the demo data and pretrained model file from:
 
-Upenn box: https://upenn.box.com/s/e9uibep5y0wcbpl1g5d0bqngl6xci9gv
-
 google drive: https://drive.google.com/drive/folders/1z1nk0sF_e25LKMyHxJVMtROFjuWet2G_?usp=sharing
 
 Please place both 'checkpoints' and 'demo_visiumhd_crc' folder under the 'S2Omics' main folder.
@@ -24,9 +22,10 @@ cd S2Omics
 conda create -n S2Omics python=3.11
 conda activate S2Omics
 pip install -r requirements.txt
+# if your server has a very old version of GCC, you can try: pip install -r requirements_old_gcc.txt
 # before execution, please write privileges to the .sh files
 chmod +x run_*
-./run_demo_roi_selection.sh
+./run_roi_selection_demo.sh
 ```
 
 A main output of ROI selection program will be like:
@@ -37,7 +36,7 @@ A main output of ROI selection program will be like:
 
 Now, suppose we've obtained the Visium HD data based on which we annotate the superpixels inside the ROI with cell types (annotation_file.csv).To broadcast the cell type information inside the ROI to thw whole tissue slide, we can run following codes (takes about 20 hours with GPU),
 ```python
-./run_demo_label_broadcasting.sh
+./run_label_broadcasting_demo.sh
 ```
 
 The output of cell type broadcasting program will be like:
