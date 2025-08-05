@@ -7,8 +7,10 @@ S2Omics is an end-to-end workflow that automatically selects regions of interest
     <img src="/readme_images/S2Omics_pipeline.png" alt="S2Omics_pipeline" width="85%">
 </div>
 
+S2Omics-main is based on foundation model UNI, Virchow2, Prov-GigaPath and is aimed for single-slice ROI selection. S2Omics-HIPT is based on HIPT which cost less time but more GPU memories. S2Omics-3D is for multiple-slices ROI selection.
+
 # Get started
-To run the demo, first please download the demo data and pretrained model file from:
+To run the demo, first please download the demo data and pretrained model checkpoints file from:
 
 google drive: https://drive.google.com/drive/folders/1z1nk0sF_e25LKMyHxJVMtROFjuWet2G_?usp=sharing
 
