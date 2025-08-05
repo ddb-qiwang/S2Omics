@@ -17,7 +17,7 @@ Args:
     down_samp_step: the down-sampling step for feature extraction, default = 10, which refers to 1:10^2 down-sampling rate
     roi_size: the physical size (mm x mm) of ROIs, default = [6.5, 6.5] which is the physical size for Visium HD ROI
     num_roi: number of ROIs to be selected, default = 0 refers to automatic determination
-    fusion_weights: the weight of three scores, default=[0.3,0.3,0.4], the sum of three weights should be equal to 1 (if not they will be normalized)
+    fusion_weights: the weight of three scores, default=[0.33,0.33,0.33], the sum of three weights should be equal to 1 (if not they will be normalized)
     positive_prior, negative_prior: prior information about interested and not-interested histology clusters, default = [],[]
     prior_preference: to what extend should the positive prior clusters be emphasized, default = 2
     optimal_roi_thres: hyper-parameter for automatic ROI determination, default = 0.03 is suitable for most cases, recommend to be set as 0 when selecting FOVs. If you want to select more ROIs, please lower this parameter
@@ -286,7 +286,7 @@ def get_args():
     parser.add_argument('--down_samp_step', type=int, default=10)
     parser.add_argument('--roi_size', type=float, nargs='+', default=[6.5,6.5])
     parser.add_argument('--num_roi', type=int, default=0) # 0 means automatically determine the optimal number of ROIs
-    parser.add_argument('--fusion_weights', type=float, nargs='+', default=[0.3,0.3,0.4]) # [size_score_wight, coverage_score_weight, balance_score_weight], sum of them should be equal to 1
+    parser.add_argument('--fusion_weights', type=float, nargs='+', default=[0.33,0.33,0.33]) # [size_score_wight, coverage_score_weight, balance_score_weight], sum of them should be equal to 1
     parser.add_argument('--positive_prior', type=int, nargs='+', default=[]) # [emphasize_clusters]
     parser.add_argument('--negative_prior', type=int, nargs='+', default=[]) # [discard_clusters]
     parser.add_argument('--prior_preference', type=int, default=2) 
