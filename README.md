@@ -10,13 +10,11 @@ S2Omics is an end-to-end workflow that automatically selects regions of interest
 # Get started
 To run the demo, first please download the demo data and pretrained model file from:
 
-Upenn box: https://upenn.box.com/s/e9uibep5y0wcbpl1g5d0bqngl6xci9gv
-
 google drive: https://drive.google.com/drive/folders/1z1nk0sF_e25LKMyHxJVMtROFjuWet2G_?usp=sharing
 
-Please place both 'checkpoints' and 'demo_visiumhd_crc' folder under the 'S2Omics' main folder.
+Please place both 'checkpoints' and 'demo' folder under the 'S2Omics' main folder.
 
-In this demo, we mimic the situation that we need to select a 6.5 mm*6.5 mm ROI for Visium HD experiment from a colorectal cancer tissue section. To run the ROI selection (takes about 25 minutes with GPU),
+In this demo, we mimic the situation that we need to select a 1.5 mm*1.5 mm ROI three serial cuts from a breast cancer tissue section. To run the ROI selection (takes about 25 minutes with GPU),
 ```python
 # download S2Omics package
 cd S2Omics
@@ -26,36 +24,14 @@ conda activate S2Omics
 pip install -r requirements.txt
 # before execution, please write privileges to the .sh files
 chmod +x run_*
-./run_demo_roi_selection.sh
+./run_feature_extraction_demo.sh
+./run_roi_selection_demo.sh
 ```
 
 A main output of ROI selection program will be like:
 <div align="center">
     <img src="/readme_images/best_roi_on_histology_segmentations_scaled.jpg" alt="roi_selection" width="60%">
 </div>
-
-
-Now, suppose we've obtained the Visium HD data based on which we annotate the superpixels inside the ROI with cell types (annotation_file.csv).To broadcast the cell type information inside the ROI to thw whole tissue slide, we can run following codes (takes about 20 hours with GPU),
-```python
-./run_demo_label_broadcasting.sh
-```
-
-The output of cell type broadcasting program will be like:
-<div align="center">
-    <img src="/readme_images/S2Omics_whole_slide_prediction_scaled.jpg" alt="cell type prediction" width="60%">
-</div>
-
-### Data format
-
-- `he-raw.jpg`: Raw histology image.
-- `pixel-size-raw.txt`: Side length (in micrometers) of pixels in `he-raw.jpg`. This value is usually between 0.1 and 1.0. For an instance, if the resolution of raw H&E image is 0.2 microns/pixel, you can just create a txt file and write down the value '0.2'.
-- `annotation_file.csv`(optional): The annotation and spatial location of superpixels, should at least contain three columns: 'super_pixel_x', 'super_pixel_y', 'annotation'. This file is not needed for ROI selection. For an instance, the first row of this table means the cell type of 267th row (top-down) 1254th column (left-right) superpixel is Myofibroblast.
-- User can refer to the demo for more detailed input information.
-
-<div align="center">
-    <img src="/readme_images/annotation_data_format.png" alt="annotation file format" width="60%">
-</div>
-
 
 ## License
 
