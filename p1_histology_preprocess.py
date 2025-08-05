@@ -24,7 +24,7 @@ return:
 
 def get_image_filename(prefix):
     file_exists = False
-    for suffix in ['.jpg', '.png', '.tiff', '.svs']:
+    for suffix in ['.jpg', '.png', '.ome.tif', '.tiff', '.tif', '.svs']:
         filename = prefix + suffix
         if os.path.exists(filename):
             file_exists = True
