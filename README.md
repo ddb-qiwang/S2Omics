@@ -10,8 +10,6 @@ S2Omics is an end-to-end workflow that automatically selects regions of interest
 # Get started
 To run the demo, first please download the demo data and pretrained model file from:
 
-Upenn box: https://upenn.box.com/s/e9uibep5y0wcbpl1g5d0bqngl6xci9gv
-
 google drive: https://drive.google.com/drive/folders/1z1nk0sF_e25LKMyHxJVMtROFjuWet2G_?usp=sharing
 
 Please place both 'checkpoints' and 'demo_visiumhd_crc' folder under the 'S2Omics' main folder.
@@ -26,7 +24,7 @@ conda activate S2Omics
 pip install -r requirements.txt
 # before execution, please write privileges to the .sh files
 chmod +x run_*
-./run_demo_roi_selection.sh
+./run_roi_selection_demo.sh
 ```
 
 A main output of ROI selection program will be like:
