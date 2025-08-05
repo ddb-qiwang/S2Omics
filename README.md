@@ -42,9 +42,7 @@ Now, suppose we've obtained the Visium HD data based on which we annotate the su
 ```
 
 The output of cell type broadcasting program will be like:
-<div align="center">
-    <img src="/readme_images/S2Omics_whole_slide_prediction_scaled.jpg" alt="cell type prediction" width="60%">
-</div>
+
 
 ### Data format
 
