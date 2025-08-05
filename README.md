@@ -12,9 +12,9 @@ To run the demo, first please download the demo data and pretrained model file f
 
 google drive: https://drive.google.com/drive/folders/1z1nk0sF_e25LKMyHxJVMtROFjuWet2G_?usp=sharing
 
-Please place both 'checkpoints' and 'demo_visiumhd_crc' folder under the 'S2Omics' main folder.
+Please place both 'checkpoints' and 'demo' folder under the 'S2Omics' main folder.
 
-In this demo, we mimic the situation that we need to select a 6.5 mm*6.5 mm ROI for Visium HD experiment from a colorectal cancer tissue section. To run the ROI selection (takes about 25 minutes with GPU),
+In this demo, we mimic the situation that we need to select a 6.5 mm*6.5 mm ROI for Visium HD experiment from a colorectal cancer tissue section. To run the ROI selection (takes about 1 hour with GPU),
 ```python
 # download S2Omics package
 cd S2Omics
@@ -33,7 +33,7 @@ A main output of ROI selection program will be like:
 </div>
 
 
-Now, suppose we've obtained the Visium HD data based on which we annotate the superpixels inside the ROI with cell types (annotation_file.csv).To broadcast the cell type information inside the ROI to thw whole tissue slide, we can run following codes (takes about 20 hours with GPU),
+Now, suppose we've obtained the Visium HD data based on which we annotate the superpixels inside the ROI with cell types (annotation_file.csv).To broadcast the cell type information inside the ROI to thw whole tissue slide, we can run following codes (takes about 1 hour with GPU),
 ```python
 ./run_demo_label_broadcasting.sh
 ```
