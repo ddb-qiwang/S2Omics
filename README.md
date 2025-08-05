@@ -30,7 +30,7 @@ chmod +x run_*
 
 A main output of ROI selection program will be like:
 <div align="center">
-    <img src="/readme_images/best_roi_on_histology_segmentations_scaled.jpg" alt="roi_selection" width="60%">
+    <img src="/readme_images/best_roi_on_histology_segmentations.jpg" alt="roi_selection" width="60%">
 </div>
 
 ## License
