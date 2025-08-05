@@ -25,6 +25,7 @@ import random
     Afterwards, we can transfer the label information to the previously stained whole-slide H&E image 
     to obtain whole-slide level cell type spatial distribution.
     Args:
+        foundation_model: the name of foundation model used for feature extraction, user can select from uni, virchow and gigapath
         WSI_datapath: the folder of whole-slide H&E image, should contain he-raw.jpg, pixel-size-raw.jpg
         SO_datapath: the folder of Spatial Omics data, should contain he-raw.jpg, pixel-size-raw.jpg, annotation_file.csv
             The annotation_file.csv should at least contain three columns {'super_pixel_x','super_pixel_y','annotation'} which 
@@ -40,13 +41,24 @@ def get_args():
     parser = argparse.ArgumentParser(description = ' ')
     parser.add_argument('WSI_datapath', type=str)
     parser.add_argument('SO_datapath', type=str)
+    parser.add_argument('--WSI_save_folder', type=str, default='S2Omics_output')
+    parser.add_argument('--SO_save_folder', type=str, default='S2Omics_output')
+    parser.add_argument('--foundation_model', type=str, default='uni', help='uni, virchow, gigapath')
+    parser.add_argument('--WSI_cache_path', type=str, default='')
+    parser.add_argument('--SO_cache_path', type=str, default='')
     parser.add_argument('--device', type=str, default='cuda')
     return parser.parse_args()
 
 def main():
     args = get_args()
     # load in spatial omics data
-    SO_pickle_folder = args.SO_datapath+'pickle_files/'
+    if not os.path.exists(args.SO_datapath+args.SO_save_folder):
+        os.makedirs(args.SO_datapath+args.SO_save_folder)
+    SO_save_folder = args.SO_datapath+args.SO_save_folder+'/'
+    if not os.path.exists(SO_save_folder+'pickle_files'):
+        os.makedirs(SO_save_folder+'pickle_files')
+    SO_pickle_folder = SO_save_folder+'pickle_files/'
+    
     shapes = load_pickle(SO_pickle_folder+'shapes.pickle')
     SO_image_shape = shapes['tiles']
     qc_preserve_indicator = load_pickle(SO_pickle_folder+'qc_preserve_indicator.pickle')
@@ -68,39 +80,55 @@ def main():
     cell_type_image_mask = np.full(shapes['tiles'], False)
     cell_type_image_mask[np.where(cell_type_image>-1)] = True
     # load in the histology features of spatial omics data 
+    print('Loading histology feature embeddings of the Spatial Omics data...')
+    if len(args.SO_cache_path) > 0:
+        SO_cache_path = args.SO_cache_path
+    else:
+        SO_cache_path = SO_pickle_folder
     SO_he_embed_total = []
     i = 0
     while 1 > 0:
-        if os.path.exists(SO_pickle_folder+f'uni_embeddings_downsamp_1_part_{i}.pickle'):
-            SO_he_embed_part = load_pickle(SO_pickle_folder+f'uni_embeddings_downsamp_1_part_{i}.pickle')
+        if os.path.exists(SO_cache_path+args.foundation_model+f'_embeddings_downsamp_1_part_{i}.pickle'):
+            SO_he_embed_part = load_pickle(SO_cache_path+args.foundation_model+f'_embeddings_downsamp_1_part_{i}.pickle')
             SO_he_embed_total.append(SO_he_embed_part)
             i += 1
         else:
             break
     SO_he_embed_total = np.concatenate(SO_he_embed_total)
     del SO_he_embed_part
+    print('Sucessfully loaded all histology feature embeddings of the Spatial Omics data!')
 
     # load in whole-slide H&E data
-    if not os.path.exists(args.WSI_datapath+'pickle_files'):
-        os.makedirs(args.WSI_datapath+'pickle_files')
-    WSI_pickle_folder = args.WSI_datapath+'pickle_files/'
+    if not os.path.exists(args.WSI_datapath+args.WSI_save_folder):
+        os.makedirs(args.WSI_datapath+args.WSI_save_folder)
+    WSI_save_folder = args.WSI_datapath+args.WSI_save_folder+'/'
+    if not os.path.exists(WSI_save_folder+'pickle_files'):
+        os.makedirs(WSI_save_folder+'pickle_files')
+    WSI_pickle_folder = WSI_save_folder+'pickle_files/'
+    
     shapes = load_pickle(WSI_pickle_folder+'shapes.pickle')
     WSI_image_shape = shapes['tiles']
     plt_figsize = (WSI_image_shape[1]//100,WSI_image_shape[0]//100)
     qc_preserve_indicator = load_pickle(WSI_pickle_folder+'qc_preserve_indicator.pickle')
     qc_mask = np.reshape(qc_preserve_indicator, WSI_image_shape)
     # load in the histology features of whole-lide H&E data 
+    print('Loading histology feature embeddings of the whole-lide H&E data...')
+    if len(args.WSI_cache_path) > 0:
+        WSI_cache_path = args.WSI_cache_path
+    else:
+        WSI_cache_path = WSI_pickle_folder
     WSI_he_embed_total = []
     i = 0
     while 1 > 0:
-        if os.path.exists(WSI_pickle_folder+f'uni_embeddings_downsamp_1_part_{i}.pickle'):
-            WSI_he_embed_part = load_pickle(WSI_pickle_folder+f'uni_embeddings_downsamp_1_part_{i}.pickle')
+        if os.path.exists(WSI_cache_path+args.foundation_model+f'_embeddings_downsamp_1_part_{i}.pickle'):
+            WSI_he_embed_part = load_pickle(WSI_cache_path+args.foundation_model+f'_embeddings_downsamp_1_part_{i}.pickle')
             WSI_he_embed_total.append(WSI_he_embed_part)
             i += 1
         else:
             break
     WSI_he_embed_total = np.concatenate(WSI_he_embed_total)
     del WSI_he_embed_part
+    print('Sucessfully loaded all histology feature embeddings of the whole-lide H&E data!')
 
     # construct pytorch dataset, spatial omics (histo-feature, annotation) as training data
     setup_seed(42)
@@ -119,9 +147,10 @@ def main():
     total_loader = DataLoader(TotalSet,shuffle=False,batch_size=512,num_workers=0,drop_last=False)
 
     # Train AE
+    print('Start training the label transferring model...')
     device = args.device
     model = S2Omics_Predictor(
-        n_input = 2048,
+        n_input = np.shape(train_x)[1],
         n_enc_1=1024,
         n_enc_2=1024,
         n_enc_3=1024,
@@ -180,21 +209,20 @@ def main():
     total_pred_ct = unique_cell_type[total_pred]
 
     # visualize the prediction results
-    color_list = [[255,127,14],[44,160,44],[214,39,40],[148,103,189],[140,86,75],[227,119,194],[127,127,127],[188,189,34],
-                  [23,190,207],[174,199,232],[255,187,120],[152,223,138],[255,152,150],[197,176,213],[196,156,148],[247,182,210],
-                  [199,199,199],[219,219,141],[158,218,229],[16,60,90],[128,64,7],[22,80,22],[107,20,20],[74,52,94],[70,43,38],
-                  [114,60,97],[64,64,64],[94,94,17],[12,95,104],[0,0,0]]
-    color_list_16bit = ['#FF7F0E', '#2CA02C', '#D62728', '#9467BD', '#8C564B',  '#E377C2', '#7F7F7F', '#BCBD22', 
-                        '#17BECF', '#AEC7E8','#FFBB78', '#98DF8A', '#FF9896', '#C5B0D5', '#C49C94',  '#F7B6D2', 
-                        '#C7C7C7', '#DBDB8D', '#9EDAE5', '#103C5A', '#804007', '#165016', '#6B1414', '#4A345E', 
-                        '#462B26', '#723C61', '#404040', '#5E5E11', '#0C5F68', '#000000']
-    ct_color_mapping = np.arange(num_cell_types)
-    colors = np.array(color_list_16bit)[ct_color_mapping]
+    color_list = np.loadtxt('color_list.txt', dtype='int').tolist()
+    with open("color_list_16bit.txt", "r", encoding="utf-8") as file:
+        lines = file.readlines()
+    color_list_16bit = []
+    for line in lines:
+        color_list_16bit.append(line.strip())
+    cluster_color_mapping = np.arange(len(color_list))
+    colors = np.array(color_list_16bit)[cluster_color_mapping]
+    
     pred_image = -1*np.ones(WSI_image_shape)
     pred_image[qc_mask] = total_pred
     pred_image_rgb = 255*np.ones([WSI_image_shape[0],WSI_image_shape[1],3])
     for cluster in range(num_cell_types):
-        pred_image_rgb[pred_image==cluster] = color_list[ct_color_mapping[cluster]]
+        pred_image_rgb[pred_image==cluster] = color_list[cluster_color_mapping[cluster]]
     pred_image_rgb = np.array(pred_image_rgb, dtype='int')
     plt.figure(figsize=plt_figsize)
     plt.imshow(pred_image_rgb)
@@ -204,7 +232,8 @@ def main():
         plt.scatter(legend_x, legend_y, c=color_list_16bit[i])
     plt.legend((unique_cell_type), fontsize=12)
     plt.savefig(args.WSI_datapath+'S2Omics_whole_slide_prediction.jpg',
-                format='jpg', dpi=1200, bbox_inches='tight',pad_inches=0)
+                format='jpg', dpi=600, bbox_inches='tight',pad_inches=0)
+    print('Predicted cell type distribution for the whole-slide H&E data is stored at: '+args.WSI_datapath+'S2Omics_whole_slide_prediction.jpg')
 
 if __name__ == '__main__':
     main()
