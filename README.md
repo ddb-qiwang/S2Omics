@@ -31,8 +31,9 @@ chmod +x run_*
 ```
 
 A main output of ROI selection program will be like:
-
-
+<div align="center">
+    <img src="/readme_images/best_roi_on_histology_segmentations_scaled.jpg" alt="roi_selection" width="60%">
+</div>
 
 Now, suppose we've obtained the Visium HD data based on which we annotate the superpixels inside the ROI with cell types (annotation_file.csv).To broadcast the cell type information inside the ROI to thw whole tissue slide, we can run following codes (takes about 20 hours with GPU),
 ```python
