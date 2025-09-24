@@ -6,8 +6,8 @@ project = 'S2Omics'
 copyright = '2025, MusuYuan'
 author = 'MusuYuan'
 
-release = '0.1'
-version = '0.1.0'
+#release = '0.1'
+#version = '0.1.0'
 
 # -- General configuration
 
