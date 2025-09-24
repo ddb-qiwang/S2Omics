@@ -48,7 +48,7 @@ Example (select 1 rectangular 6.5mm x 6.5mm ROI at downsampling step=10):
 
 Typical output:
 
-.. image:: readme_images/best_roi_on_histology_segmentations_scaled.jpg
+.. image:: images/best_roi_on_histology_segmentations_scaled.jpg
    :alt: Best ROI example
    :width: 60%
    :align: center
@@ -89,7 +89,7 @@ Example:
 
 Output example:
 
-.. image:: readme_images/S2Omics_whole_slide_prediction_scaled.jpg
+.. image:: images/S2Omics_whole_slide_prediction_scaled.jpg
    :alt: Whole slide cell type prediction
    :width: 60%
    :align: center
