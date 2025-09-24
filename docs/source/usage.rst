@@ -1,9 +1,21 @@
 Usage
 =====
 
+Overview
+--------
+S2Omics is organized as a modular pipeline:
+
+1. **Histology Preprocessing (p1)** – Scale and pad raw H&E stained images.
+2. **Superpixel Quality Control (p2)** – Split image into superpixels and remove low-quality tiles.
+3. **Feature Extraction (p3)** – Apply foundation model to obtain deep embeddings of image patches.
+4. **Histology Segmentation (p4)** – Cluster embeddings into histology-based morphological clusters.
+5. **Cluster Merging (p5)** – Merge highly similar clusters to reduce over-segmentation.
+6. **ROI Selection (p6)** – Automatically select optimal Regions of Interest given constraints.
+7. **Label Broadcasting (p7)** – Project cell type annotations from ROI-scale spatial omics data to the entire slide.
+
 Installation
 ------------
-We recommend using Python 3.11 or above for S2Omics.
+We recommend Python 3.11+.
 
 .. code-block:: bash
 
@@ -11,19 +23,23 @@ We recommend using Python 3.11 or above for S2Omics.
    cd S2Omics
    conda create -n S2Omics python=3.11
    conda activate S2Omics
-   pip install -r requirements.txt  # or requirements_old_gcc.txt if GCC is outdated
+   pip install -r requirements.txt
+   # if GCC is very old:
+   pip install -r requirements_old_gcc.txt
 
-Downloading Demo Data and Models
---------------------------------
-You can download demo datasets and pretrained foundation model checkpoints from:
+Demo Data and Models
+--------------------
+Download from Google Drive:
 
-Google Drive: https://drive.google.com/drive/folders/1z1nk0sF_e25LKMyHxJVMtROFjuWet2G_?usp=sharing
+https://drive.google.com/drive/folders/1z1nk0sF_e25LKMyHxJVMtROFjuWet2G_?usp=sharing
 
-Place both `checkpoints` and `demo` folders inside the `S2Omics` main directory.
+Place both `checkpoints` and `demo` under S2Omics main folder.
 
-Running ROI Selection Demo
---------------------------
-Example: selecting a single 6.5 mm × 6.5 mm ROI for a Visium HD experiment.
+Running the Full ROI Selection Pipeline
+----------------------------------------
+Use `run_roi_selection.sh` to execute all steps p1–p6.
+
+Example (select 1 rectangular 6.5mm x 6.5mm ROI at downsampling step=10):
 
 .. code-block:: bash
 
@@ -37,9 +53,35 @@ Typical output:
    :width: 60%
    :align: center
 
-Running Cell Type Label Broadcasting Demo
------------------------------------------
-If spatial omics data is available with cell type annotations inside the ROI (`annotation_file.csv`), you can broadcast these labels to the entire slide:
+This runs:
+
+1. **p1_histology_preprocess.py**  
+   - Input: Folder with `he-raw.jpg`, `pixel-size-raw.txt`  
+   - Output: `he-scaled.jpg`, padded `he.jpg`.
+
+2. **p2_superpixel_quality_control.py**  
+   - Splits `he.jpg` into `patch_size` superpixels (default 16×16 px).  
+   - Applies density filtering and texture analysis to remove low-quality tiles.
+
+3. **p3_feature_extraction.py**  
+   - Loads foundation model (UNI/Virchow/GigaPath).  
+   - Extracts two-level embeddings (global 224×224, local patch-level).
+
+4. **p4_get_histology_segmentation.py**  
+   - Clusters PCA-reduced embeddings into morphological clusters.  
+   - Methods: kmeans, fuzzy c-means, Louvain, Leiden, etc.
+
+5. **p5_merge_over_clusters.py**  
+   - Merges clusters with high similarity (hierarchical-linkage based) to target cluster count.
+
+6. **p6_roi_selection_rectangle.py / p6_roi_selection_circle.py**  
+   - Uses search + scoring system (scale, coverage, balance) to select ROIs automatically or for given `num_roi`.
+
+Running Cell Label Broadcasting
+-------------------------------
+Prerequisite: you have spatial omics ROI-level annotations (`annotation_file.csv`).
+
+Example:
 
 .. code-block:: bash
 
@@ -52,30 +94,24 @@ Output example:
    :width: 60%
    :align: center
 
-Data Format
------------
-Required file inputs for S2Omics modules:
+This runs p1-p7:
 
-- ``he-raw.jpg``: Raw histology image.
-- ``pixel-size-raw.txt``: Side length in micrometers per pixel of the raw image (e.g., `0.2`).
-- ``pixel-size.txt``: Desired target microns per pixel after rescaling (e.g., `0.5`).
-- ``annotation_file.csv`` *(optional for label broadcasting)*:
-  - **super_pixel_x**, **super_pixel_y**, **annotation**
-  - Example row: `267, 1254, Myofibroblasts`.
+**p7_cell_label_broadcasting.py** – Loads histology features from ROI-scale omics and from whole-slide image, trains a small autoencoder-based classifier, and predicts cell type for every valid superpixel across the slide.
 
-Example annotation table:
+Input File Formats
+------------------
+- **he-raw.jpg** – raw histology image.
+- **pixel-size-raw.txt** – microns/pixel for raw image.
+- **pixel-size.txt** – target microns/pixel after rescaling.
+- **annotation_file.csv (optional)** – Required for label broadcasting.  
+  Columns: `super_pixel_x, super_pixel_y, annotation`.
 
-+---------------------+----------------+----------------+-----------------------------------+
-| barcode             | super_pixel_x  | super_pixel_y  | annotation                        |
-+=====================+================+================+===================================+
-| s_008um_00000_00276 | 267             | 1254           | Myofibroblasts                     |
-| s_008um_00000_00279 | 270             | 1254           | Epithelial cells (Malignant)       |
-+---------------------+----------------+----------------+-----------------------------------+
+Example annotation file:
 
-Pipeline Overview
------------------
-
-.. image:: /readme_images/S2Omics_pipeline.png
-   :alt: Pipeline overview
-   :width: 85%
-   :align: center
++----------------+--------------+--------------+----------------------------+
+| barcode        | super_pixel_x| super_pixel_y| annotation                 |
++================+==============+==============+============================+
+| s_xxx          | 267          | 1254         | Myofibroblasts              |
++----------------+--------------+--------------+----------------------------+
+| s_xxx          | 270          | 1254         | Epithelial cells (Malignant)|
++----------------+--------------+--------------+----------------------------+
