@@ -1,135 +1,230 @@
 API Reference
 =============
 
-Below are the main modules in S2Omics pipeline with their purpose, CLI arguments, and outputs.
+Below are the main modules in the S2Omics pipeline, with purpose, CLI parameters,
+and I/O descriptions. Autodoc will generate detailed function and class listings from docstrings.
 
+----------------------------------------
 p1_histology_preprocess
------------------------
-**Purpose**:  
-Scale and pad the raw H&E stained image to target resolution and size alignment.
+----------------------------------------
+**Purpose:**  
+Scale and pad raw H&E stained images to a target resolution so that image dimensions are divisible by the patch size.
 
-**Key Functions / CLI Arguments**:
-- `prefix` (positional) – folder containing `he-raw.jpg` and pixel size files.
-- Output: `he-scaled.jpg` and padded `he.jpg`.
+**Inputs:**
+- Raw image file (`he-raw.jpg` or `.png`/`.tiff`/`.svs`).
+- `pixel-size-raw.txt` – Physical resolution in µm/pixel.
+- `pixel-size.txt` – Target resolution after rescaling (default 0.5 µm).
+
+**Outputs:**
+- `he-scaled.jpg` – rescaled image.
+- `he.jpg` – scaled + padded image.
+
+**CLI Arguments:**
+
++----------------+----------+---------------------------------------------+
+| Argument       | Default  | Description                                 |
++================+==========+=============================================+
+| prefix         | (pos.)   | Path to H&E image folder.                   |
++----------------+----------+---------------------------------------------+
 
 .. automodule:: p1_histology_preprocess
    :members:
+   :undoc-members:
+   :show-inheritance:
 
+----------------------------------------
 p2_superpixel_quality_control
------------------------------
-Splits `he.jpg` into superpixels and applies quality control:
-- Density filtering using RGB variance.
-- Texture analysis to remove tiles with poor cellular structure.
-- Background cleaning (optional).
+----------------------------------------
+**Purpose:**  
+Split histology image (`he.jpg`) into superpixels and filter out tiles without nuclei
+or with low structural quality, using density and texture analysis.
 
-**CLI Args**:
-- `--save_folder`: name/path for outputs.
-- `--patch_size`: size per superpixel (default 16 px).
-- `--density_thresh`: RGB density cutoff.
-- `--clean_background_flag`: preserve fibrous regions.
+**Outputs:**
+- `qc_preserve_indicator.pickle` – Boolean matrix of valid superpixels.
+- QC mask image (`qc_mask.jpg`).
 
-Outputs:
-- `qc_preserve_indicator.pickle`
-- Mask images showing valid superpixels.
+**CLI Arguments:**
+
++------------------------+----------+---------------------------------------------------+
+| Argument               | Default  | Description                                       |
++========================+==========+===================================================+
+| prefix                 | (pos.)   | Input histology folder.                           |
++------------------------+----------+---------------------------------------------------+
+| --save_folder          | S2Omics_output | Output directory name.                      |
++------------------------+----------+---------------------------------------------------+
+| --patch_size           | 16       | Superpixel dimension (px).                        |
++------------------------+----------+---------------------------------------------------+
+| --density_thresh       | 100      | RGB density threshold.                            |
++------------------------+----------+---------------------------------------------------+
+| --clean_background_flag| off      | Preserve fibrous regions if set.                  |
++------------------------+----------+---------------------------------------------------+
 
 .. automodule:: p2_superpixel_quality_control
    :members:
 
+----------------------------------------
 p3_feature_extraction
----------------------
-Apply a chosen **foundation model** (UNI/Virchow/GigaPath) to extract hierarchical embeddings:
-- Global 224×224-level feature
-- Local patch-level feature
+----------------------------------------
+**Purpose:**  
+Apply a foundation model (UNI / Virchow / GigaPath) to extract hierarchical features from superpixels.
 
-CLI Args:
-- `--foundation_model`: one of {uni, virchow, gigapath}
-- `--ckpt_path`: path to model checkpoint
-- `--down_samp_step`: controls patch sample density.
+**Outputs:**
+- Hierarchical embeddings saved in multiple `.pickle` parts.
 
-Output files:
-- `{model}_embeddings_downsamp_{step}_part_{n}.pickle`
+**CLI Arguments:**
+
++-------------------+----------+------------------------------------------------------+
+| Argument          | Default  | Description                                          |
++===================+==========+======================================================+
+| prefix            | (pos.)   | Input histology folder.                              |
++-------------------+----------+------------------------------------------------------+
+| --save_folder     | S2Omics_output | Output folder name.                            |
++-------------------+----------+------------------------------------------------------+
+| --foundation_model| uni      | Base model: uni / virchow / gigapath.                 |
++-------------------+----------+------------------------------------------------------+
+| --ckpt_path       | ./checkpoints/uni/ | Model checkpoint path.                      |
++-------------------+----------+------------------------------------------------------+
+| --down_samp_step  | 10       | Downsampling factor.                                  |
++-------------------+----------+------------------------------------------------------+
 
 .. automodule:: p3_feature_extraction
    :members:
 
+----------------------------------------
 p4_get_histology_segmentation
------------------------------
-Cluster PCA-reduced embeddings into morphological classes using chosen clustering method.
+----------------------------------------
+**Purpose:**  
+Cluster PCA-reduced embeddings into morphological clusters using chosen algorithm.
 
-CLI Args:
-- `--clustering_method`: kmeans, fcm, agglo, bisect, birch, louvain, leiden.
-- `--n_clusters`: initial cluster number (for kmeans/fcm).
-- `--resolution`: resolution for graph-based clustering.
+**Outputs:**
+- `cluster_image.pickle` – Cluster map.
+- Cluster RGB image.
 
-Outputs:
-- `cluster_image.pickle` – matrix of cluster IDs per superpixel.
-- RGB cluster-preview image.
+**CLI Arguments:**
+
++--------------------+----------+---------------------------------------------------+
+| Argument           | Default  | Description                                       |
++====================+==========+===================================================+
+| prefix             | (pos.)   | Input folder.                                     |
++--------------------+----------+---------------------------------------------------+
+| --save_folder      | S2Omics_output | Output directory.                           |
++--------------------+----------+---------------------------------------------------+
+| --clustering_method| kmeans   | kmeans, fcm, agglo, bisect, birch, louvain, leiden |
++--------------------+----------+---------------------------------------------------+
+| --n_clusters       | 20       | Initial clusters (kmeans/fcm).                     |
++--------------------+----------+---------------------------------------------------+
+| --resolution       | 1.0      | Graph-based method resolution (louvain/leiden).    |
++--------------------+----------+---------------------------------------------------+
 
 .. automodule:: p4_get_histology_segmentation
    :members:
 
+----------------------------------------
 p5_merge_over_clusters
-----------------------
-Merge clusters with high similarity to avoid over-segmentation; uses `linkage_matrix.pickle` from p4.
+----------------------------------------
+**Purpose:**  
+Merge morphological clusters with high similarity to target number using hierarchical linkage.
 
-CLI Args:
-- `--target_n_clusters`: desired final count.
+**Outputs:**
+- `adjusted_cluster_image.pickle` – Merged cluster map.
+- Adjusted segmentation image.
 
-Outputs:
-- `adjusted_cluster_image.pickle`
-- Dendrogram showing cluster merging.
+**CLI Arguments:**
+
++----------------------+----------+---------------------------------------------+
+| Argument             | Default  | Description                                 |
++======================+==========+=============================================+
+| prefix               | (pos.)   | Input folder.                               |
++----------------------+----------+---------------------------------------------+
+| --save_folder        | S2Omics_output | Output directory.                     |
++----------------------+----------+---------------------------------------------+
+| --target_n_clusters  | 15       | Desired final cluster number.               |
++----------------------+----------+---------------------------------------------+
 
 .. automodule:: p5_merge_over_clusters
    :members:
 
+----------------------------------------
 p6_roi_selection_rectangle
---------------------------
-Search and scoring for **rectangular ROIs**.
+----------------------------------------
+**Purpose:**  
+Automatically select rectangular ROIs based on scoring criteria:
+- **Scale score** (size coverage)
+- **Coverage score** (valid cell proportion)
+- **Balance score** (match desired cluster composition)
 
-Scoring metrics:
-- Scale (size coverage)
-- Validity (cell coverage)
-- Balance (match target cluster composition)
+**Outputs:**
+- ROI visualizations on segmentation and raw histology image.
+- `best_roi.pickle` – ROI details and score breakdown.
 
-CLI Args:
-- `--roi_size`: physical size in mm×mm.
-- `--num_roi`: number of ROIs to select (0 = auto-determine).
-- `--positive_prior`, `--negative_prior`: emphasize or de-prioritize clusters.
+**CLI Arguments:**
 
-Outputs:
-- ROI visualization over histology segmentation and raw H&E.
-- Best ROI pickle with score breakdown.
++--------------------+----------+------------------------------------------------------+
+| Argument           | Default  | Description                                          |
++====================+==========+======================================================+
+| prefix             | (pos.)   | Input folder.                                        |
++--------------------+----------+------------------------------------------------------+
+| --save_folder      | S2Omics_output | Output folder.                                 |
++--------------------+----------+------------------------------------------------------+
+| --roi_size         | [6.5,6.5]| Physical size in mm (width height).                  |
++--------------------+----------+------------------------------------------------------+
+| --num_roi          | 0        | Number of ROIs (0 = auto-determine optimal).         |
++--------------------+----------+------------------------------------------------------+
+| --positive_prior   | []       | Clusters to emphasize.                               |
++--------------------+----------+------------------------------------------------------+
+| --negative_prior   | []       | Clusters to de-prioritize.                           |
++--------------------+----------+------------------------------------------------------+
+| --prior_preference | 2        | Weight for emphasis clusters.                        |
 
 .. automodule:: p6_roi_selection_rectangle
    :members:
 
+----------------------------------------
 p6_roi_selection_circle
------------------------
-Same as rectangle ROI selection but uses circular masks; suited for TMA core selection.
+----------------------------------------
+**Purpose:**  
+Same as rectangular ROI selection, but using circular geometry. Suitable for TMA core or circular ROI scans.
+
+**CLI Arguments:** Similar to rectangle, with `--roi_size` interpreted as radius.
 
 .. automodule:: p6_roi_selection_circle
    :members:
 
+----------------------------------------
 p7_cell_label_broadcasting
---------------------------
-Broadcast cell type annotations from ROI-scale spatial omics to whole-slide.
+----------------------------------------
+**Purpose:**  
+Train an Autoencoder-based classifier using ROI-scale spatial omics cell annotations, then broadcast labels to the entire slide.
 
-**Workflow**:
-1. Load ROI annotation (`annotation_file.csv`).
-2. Train small AE-classifier using ROI histology features and labels.
-3. Apply to valid whole-slide superpixels to predict cell types.
+**Outputs:**
+- `S2Omics_whole_slide_prediction.jpg` – Predicted whole-slide cell type map.
 
-Output:
-- `S2Omics_whole_slide_prediction.jpg`
+**CLI Arguments:**
+
++-------------------+----------+--------------------------------------------------+
+| Argument          | Default  | Description                                      |
++===================+==========+==================================================+
+| WSI_datapath      | (pos.)   | Whole-slide input folder.                        |
++-------------------+----------+--------------------------------------------------+
+| SO_datapath       | (pos.)   | Spatial omics ROI input folder.                  |
++-------------------+----------+--------------------------------------------------+
+| --foundation_model| uni      | Model for embeddings.                            |
++-------------------+----------+--------------------------------------------------+
+| --device          | cuda     | Compute device.                                  |
 
 .. automodule:: p7_cell_label_broadcasting
    :members:
 
+----------------------------------------
 Utility Modules
----------------
+----------------------------------------
+Low-level utilities used in multiple steps (I/O helpers, seeding, image operations).
+
 .. automodule:: s1_utils
    :members:
+
 .. automodule:: s2_label_broadcasting
    :members:
+
 .. automodule:: utils
    :members:
