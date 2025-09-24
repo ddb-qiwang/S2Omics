@@ -7,6 +7,10 @@ S2Omics is an end-to-end workflow that automatically selects regions of interest
     <img src="/readme_images/S2Omics_pipeline.png" alt="S2Omics_pipeline" width="85%">
 </div>
 
+Paper link: https://www.biorxiv.org/content/10.1101/2025.09.21.677634v1
+
+The paper is now accepted in principle by **Nature Cell Biology**
+
 # Get started
 To run the demo, first please download the demo data and pretrained model file from:
 
