@@ -18,6 +18,7 @@ Key Features
    :align: center
 
 Paper link: https://www.biorxiv.org/content/10.1101/2025.09.21.677634v1  
+
 Accepted in principle by **Nature Cell Biology**.
 
 Contents
