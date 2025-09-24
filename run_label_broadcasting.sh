@@ -17,7 +17,7 @@ if [ "${WSI_datapath}" != "${SO_datapath}" ]; then
 	# extract the histology feature of SO H&E image
 	echo $pixel_size > ${SO_datapath}pixel-size.txt
 	python p1_histology_preprocess.py ${SO_datapath}
-	python p2_superpixel_quality_control.py ${SO_datapath} --m 1.0
+	python p2_superpixel_quality_control.py ${SO_datapath}
 	python p3_feature_extraction.py  ${SO_datapath} --device=${device} --down_samp_step 1
 fi
 
