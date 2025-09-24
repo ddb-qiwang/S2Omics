@@ -12,7 +12,7 @@ Key Features
 - **3D multi-slice ROI selection** capability (S2Omics-3D).
 - Modular pipeline for preprocessing, segmentation, clustering, ROI selection, and label broadcasting.
 
-.. image:: /readme_images/S2Omics_pipeline.png
+.. image:: readme_images/S2Omics_pipeline.png
    :alt: S2Omics pipeline
    :width: 85%
    :align: center
