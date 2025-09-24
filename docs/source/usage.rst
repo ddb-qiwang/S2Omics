@@ -31,6 +31,7 @@ Example: selecting a single 6.5 mm × 6.5 mm ROI for a Visium HD experiment.
    ./run_roi_selection_demo.sh
 
 Typical output:
+
 .. image:: /readme_images/best_roi_on_histology_segmentations_scaled.jpg
    :alt: Best ROI example
    :width: 60%
@@ -45,6 +46,7 @@ If spatial omics data is available with cell type annotations inside the ROI (`a
    ./run_label_broadcasting_demo.sh
 
 Output example:
+
 .. image:: /readme_images/S2Omics_whole_slide_prediction_scaled.jpg
    :alt: Whole slide cell type prediction
    :width: 60%
@@ -72,6 +74,7 @@ Example annotation table:
 
 Pipeline Overview
 -----------------
+
 .. image:: /readme_images/S2Omics_pipeline.png
    :alt: Pipeline overview
    :width: 85%
