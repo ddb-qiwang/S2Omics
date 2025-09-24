@@ -4,7 +4,7 @@ Musu Yuan, Kaitian Jin, Hanying Yan, Amelia Schroeder, Chunyu Luo, Sicong Yao, B
 S2Omics is an end-to-end workflow that automatically selects regions of interest for spatial omics experiments using histology images. Additionally, S2Omics utilizes the resulting spatial omics data to virtually reconstruct spatial molecular profiles across entire tissue sections, providing valuable insights to guide subsequent experimental steps. Our histology image-guided design significantly reduces experimental costs while preserving critical spatial molecular variations, thereby making spatial omics studies more accessible and cost-effective.
 
 <div align="center">
-    <img src="/docs/readme_images/S2Omics_pipeline.png" alt="S2Omics_pipeline" width="85%">
+    <img src="/docs/source/images/S2Omics_pipeline.png" alt="S2Omics_pipeline" width="85%">
 </div>
 
 S2Omics-main is based on foundation model UNI, Virchow2, Prov-GigaPath and is aimed for single-slice ROI selection. S2Omics-HIPT is based on HIPT which cost less time but more GPU memories. S2Omics-3D is for multiple-slices ROI selection.
@@ -36,7 +36,7 @@ chmod +x run_*
 
 A main output of ROI selection program will be like:
 <div align="center">
-    <img src="/docs/readme_images/best_roi_on_histology_segmentations_scaled.jpg" alt="roi_selection" width="60%">
+    <img src="/docs/source/images/best_roi_on_histology_segmentations_scaled.jpg" alt="roi_selection" width="60%">
 </div>
 
 Now, suppose we've obtained the Visium HD data based on which we annotate the superpixels inside the ROI with cell types (annotation_file.csv).To broadcast the cell type information inside the ROI to thw whole tissue slide, we can run following codes (takes about 20 hours with GPU),
@@ -46,7 +46,7 @@ Now, suppose we've obtained the Visium HD data based on which we annotate the su
 
 The output of cell type broadcasting program will be like:
 <div align="center">
-    <img src="/docs/readme_images/S2Omics_whole_slide_prediction_scaled.jpg" alt="cell type prediction" width="60%">
+    <img src="/docs/source/images/S2Omics_whole_slide_prediction_scaled.jpg" alt="cell type prediction" width="60%">
 </div>
 
 ### Data format
@@ -57,7 +57,7 @@ The output of cell type broadcasting program will be like:
 - User can refer to the demo for more detailed input information.
 
 <div align="center">
-    <img src="/docs/readme_images/annotation_data_format.png" alt="annotation file format" width="60%">
+    <img src="/docs/source/images/annotation_data_format.png" alt="annotation file format" width="60%">
 </div>
 
 
