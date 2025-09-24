@@ -10,7 +10,7 @@ pixel_size=0.5  # desired pixel size for the whole analysis
 # extract the histology feature of whole-slide H&E image
 echo $pixel_size > ${WSI_datapath}pixel-size.txt
 python p1_histology_preprocess.py ${WSI_datapath}
-python p2_superpixel_quality_control.py ${WSI_datapath} --m 1.0
+python p2_superpixel_quality_control.py ${WSI_datapath}
 python p3_feature_extraction.py  ${WSI_datapath} --device=${device} --down_samp_step 1
 
 # if the ST data itselt has whole-slide H&E image, we can do in-sample broadcasting and thus only need to extract the features once
