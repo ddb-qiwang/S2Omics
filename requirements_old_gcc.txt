@@ -127,6 +127,7 @@ typing==3.7.4.3
 typing_extensions==4.14.1
 tzdata==2025.2
 umap-learn==0.5.9.post2
+brokenaxes==0.6.2
 urllib3==2.5.0
 wcwidth==0.2.13
 yarl==1.20.1
