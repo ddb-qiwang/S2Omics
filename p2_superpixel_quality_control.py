@@ -1,10 +1,24 @@
+import sys 
+sys.path.append('./HistoSweep')
+import shutil
 import argparse
-import os
-import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
+import numpy as np
+import os 
+from time import time
+import os
+#from utils import load_image
+from HistoSweep.saveParameters import saveParams
+from HistoSweep.computeMetrics import compute_metrics_memory_optimized
+from HistoSweep.densityFiltering import compute_low_density_mask
+from HistoSweep.textureAnalysis import run_texture_analysis
+from HistoSweep.ratioFiltering import run_ratio_filtering
+from HistoSweep.generateMask import generate_final_mask
+from HistoSweep.additionalPlots import generate_additionalPlots
+from PIL import Image
 from s1_utils import (
         load_image, save_pickle)
+from UTILS import get_image_filename,load_image
 
 
 '''combine he.jpg into superpixels and filter out superpixels that do not contain nuclei
@@ -14,8 +28,6 @@ Args:
         if so, the folder will be placed under the prefix folder
     m: default = 1, can be any float>0, smaller m filters less superpixels, another common setting is 0.7 
         which is useful when the H&E image quality is not satisfactory (post-Xenium or post-CosMx H&E for example)
-    manual: if user what to select the threshold line manually, default=False
-    manual_x_vertex: only valid when previous option is 'manual', refers to where the threshold line cuts x axis, default=150
 Return:
     --prefix (the main folder)
     ---save_folder (subfolder)
@@ -58,26 +70,38 @@ def patchify(x, patch_size):
             tiles=tiles_shape)
     patch_index_mask = patch_index_mask[:np.shape(x)[0]-pad_w,:np.shape(x)[1]-pad_h]
     return tiles, shapes, patch_index_mask
-
-def linear_line(x,x_vertex,m):
-    return m*x - x_vertex 
-
+    
 def get_args():
-    parser = argparse.ArgumentParser(description=' ')
-    parser.add_argument('prefix', type=str)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('prefix', type=str, help="folder path of H&E stained image, '/home/H&E_image/' for an example") 
     parser.add_argument('--save_folder', type=str, default='S2Omics_output')
-    parser.add_argument('--patch_size', type=int, default=16)
-    parser.add_argument('--m', type=float, default=1.0)
-    parser.add_argument('--manual', type=bool, default=False, help='if need to manually select the linearbound')
-    parser.add_argument('--manual_x_vertex', type=float, default=150, help='the manual x_vertex of the linear bound')
-    args = parser.parse_args()
-    return args
+    parser.add_argument('--pixel_size_raw',type=float,default = 0.5)
+    parser.add_argument('--density_thresh',type=int,default = 100)
+    parser.add_argument('--clean_background_flag', action='store_true', help='Whether to preserve fibrous regions that are otherwise being incorrectly filtered out')
+    parser.add_argument('--min_size',type=int,default = 10)
+    parser.add_argument('--patch_size',type=int,default = 16)
+    parser.add_argument('--pixel_size',type=float,default = 0.5)
+    
+    ##########################
+    return parser.parse_args()
 
 def main():
 
     args = get_args()
+    pixel_size_raw = args.pixel_size_raw
+    density_thresh = args.density_thresh
+    clean_background_flag = args.clean_background_flag
+    min_size = args.min_size
+    patch_size = args.patch_size
+    pixel_size = args.pixel_size
     
-    if not os.path.exists(args.prefix+args.save_folder):
+    if '/' not in args.save_folder:
+        histosweep_folder = args.save_folder
+        save_folder = args.prefix+args.save_folder
+    else:
+        histosweep_folder = 'HistoSweep_output'
+        os.makedirs(args.prefix+args.save_folder)
+    if not os.path.exists(args.prefix+histosweep_folder):
         os.makedirs(args.prefix+args.save_folder)
     save_folder = args.prefix+args.save_folder+'/'
     if not os.path.exists(save_folder+'image_files'):
@@ -87,66 +111,52 @@ def main():
         os.makedirs(save_folder+'pickle_files')
     pickle_folder = save_folder+'pickle_files/'
     
-    he = load_image(args.prefix+'he.jpg')
-    he_tiles,shapes,_ = patchify(he, patch_size=args.patch_size)
-    he_mean = [np.mean(he_tile) for he_tile in he_tiles]
-    he_mean_image = np.reshape(he_mean, shapes['tiles'])
-    he_std = [np.std(he_tile) for he_tile in he_tiles]
-    he_std_image = np.reshape(he_std, shapes['tiles'])
-    save_pickle(shapes, pickle_folder+'shapes.pickle')
+    image = load_image(args.prefix+'he.jpg')
+    _,shapes,_ = patchify(image, patch_size=args.patch_size)
+
+    # Flag for whether to rescale the image 
+    need_scaling_flag = False  # True if image resolution ≠ 0.5µm (or desired size) per pixel
+    # Flag for whether to preprocess the image 
+    need_preprocessing_flag = False  # True if image dimensions are not divisible by patch_size
+
+    he_std_norm_image_, he_std_image_, z_v_norm_image_, z_v_image_, ratio_norm_, ratio_norm_image_ = compute_metrics_memory_optimized(image, patch_size=patch_size)
     
-    image_shape = shapes['tiles']
-    dpi = 600
-    length = np.max(image_shape)//100
-    plt_figsize = (image_shape[1]//100,image_shape[0]//100)
-    if dpi*length > np.power(2,16):
-        reduce_ratio = np.power(2,16)/(dpi*length)
-        plt_figsize = ((image_shape[1]*reduce_ratio)//100,(image_shape[0]*reduce_ratio)//100)
+    # identify low density superpixels
+    mask1_lowdensity = compute_low_density_mask(z_v_image_, he_std_image_, ratio_norm_, density_thresh=density_thresh)
+    
+    print('Total selected for density filtering: ', mask1_lowdensity.sum())
+    
+    # perform texture analysis 
+    mask1_lowdensity_update = run_texture_analysis(prefix=args.prefix[:-1], image=image, tissue_mask=mask1_lowdensity, output_dir=histosweep_folder, patch_size=patch_size, glcm_levels=64)
 
-    # fit the superpixel RGB mean-std distribution with a parabola
-    mean_intensity = he_mean_image.copy().flatten()
-    std_dev = he_std_image.copy().flatten()
-    coeffs = np.polyfit(mean_intensity, std_dev, 2) 
-    a, b, c = coeffs  
-    x_vertex = -b / (2 * a)
-    y_vertex = a * x_vertex**2 + b * x_vertex + c
-    print(f"Peak of the parabola occurs at Mean Intensity: {x_vertex:.2f}, Standard Deviation: {y_vertex:.2f}")
+    
+    # identify low ratio superpixels
+    mask2_lowratio, otsu_thresh = run_ratio_filtering(ratio_norm_, mask1_lowdensity_update)
+    print(mask2_lowratio.shape)
+    
+    
+    generate_final_mask(prefix=args.prefix[:-1], he=image,output_dir=histosweep_folder+'/image_files', 
+                    mask1_updated = mask1_lowdensity_update, mask2 = mask2_lowratio, 
+                    clean_background = clean_background_flag, 
+                    super_pixel_size=patch_size, minSize = min_size)
 
-    # calculate the linear bound to filter out superpixels without nuclei
-    linear_boundary = args.m*mean_intensity - x_vertex 
-    if args.manual:
-        linear_boundary = args.m*mean_intensity - args.manual_x_vertex 
-    below_boundary_mask = std_dev < linear_boundary
-    below_boundary_indices = np.where(below_boundary_mask)[0]
+    ###########################################################
+    
+    print("Running successfully!")
+    
+    # transform the mask image to matrix and save to a pickle file
+    # Load the image
+    img = Image.open(args.prefix+histosweep_folder+'/image_files/mask-small.png')
 
-    # plot the parabola
-    plt.figure()
-    plt.scatter(mean_intensity[~below_boundary_mask], std_dev[~below_boundary_mask], color='blue', s=.1)
-    plt.scatter(mean_intensity[below_boundary_mask], std_dev[below_boundary_mask], color='red', s=.1)
-    x_vals = np.linspace(np.min(mean_intensity), np.max(mean_intensity), 500)
-    y_vals = a * x_vals**2 + b * x_vals + c
-    plt.plot(x_vals, y_vals, 'g--', label='Fitted Quadratic')
-    plt.scatter([x_vertex], [y_vertex], color='green', s=50, zorder=5)
-    # Plot the linear boundary line
-    x_line = np.linspace(x_vertex, np.max(mean_intensity), 500)
-    y_line = linear_line(x_line, x_vertex, args.m)
-    plt.plot(x_line, y_line, 'r--', label='Linear Boundary')
-    plt.xlim(0, he_mean_image.max()+10)  
-    plt.ylim(-5, he_std_image.max()+25)  
-    # Plot settings
-    plt.xlabel('Mean Intensity')
-    plt.ylabel('Standard Deviation')
-    plt.title(f'Linear Boundary with M = {args.m}')
-    plt.legend()
-    plt.savefig(image_folder+'linear_boundary.jpg', format='jpg', dpi=dpi, bbox_inches='tight',pad_inches=0)
+    arr = np.array(img)
 
-    # get the index of superpixels that have passed quality control and output the qc_mask 
-    qc_preserve_indicator = [True if he_std[i] >= linear_boundary[i] else False for i in range(len(he_tiles))]
-    save_pickle(qc_preserve_indicator, pickle_folder+'qc_preserve_indicator.pickle')
-    qc_mask = np.reshape(qc_preserve_indicator, image_shape)
-    plt.figure(figsize=plt_figsize)
-    plt.imshow(qc_mask)
-    plt.savefig(image_folder+'qc_mask.jpg', format='jpg', dpi=dpi, bbox_inches='tight',pad_inches=0)
+    # Define threshold (0=black, 255=white)
+    threshold = 128
+    mask = arr > threshold  # True for white, False for black
+
+    # Save pickle for later use
+    save_pickle(mask, pickle_folder+'qc_preserve_indicator.pickle')
+    
 
 if __name__ == '__main__':
     main()
