@@ -14,8 +14,8 @@ pixel_size=0.5  # desired pixel size for the whole analysis
 # preprocess histology image
 echo $pixel_size > ${prefix}pixel-size.txt
 python p1_histology_preprocess.py ${prefix}
-# higher m will filter more cells, we recommand m=0.7 if the H&E image is of poor quality
-python p2_superpixel_quality_control.py ${prefix} --save_folder ${save_folder} --patch_size 16 --m 1.0
+# use histosweep for quality control
+python p2_superpixel_quality_control.py ${prefix} --save_folder ${save_folder} --patch_size 16
 
 # extract histology features
 # larger down_samp_step will lower the resolution ot image segmentation results, but can save time
