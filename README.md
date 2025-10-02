@@ -11,6 +11,8 @@ S2Omics-main is based on foundation model UNI, Virchow2, Prov-GigaPath and is ai
 
 Paper link: https://www.biorxiv.org/content/10.1101/2025.09.21.677634v1
 
+ReadTheDocs page: https://s2omics.readthedocs.io/en/latest/
+
 The paper is now accepted in principle by **Nature Cell Biology**
 
 # Get started
