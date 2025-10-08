@@ -25,6 +25,7 @@ Please place both 'checkpoints' and 'demo' folder under the 'S2Omics' main folde
 In this demo, we mimic the situation that we need to select a 6.5 mm*6.5 mm ROI for Visium HD experiment from a colorectal cancer tissue section. To run the ROI selection (takes about 25 minutes with GPU),
 ```python
 # download S2Omics package
+git clone -b main https://github.com/ddb-qiwang/S2Omics
 cd S2Omics
 # We recommand using Python 3.11 or above
 conda create -n S2Omics python=3.11
