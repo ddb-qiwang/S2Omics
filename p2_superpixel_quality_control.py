@@ -113,6 +113,7 @@ def main():
     
     image = load_image(args.prefix+'he.jpg')
     _,shapes,_ = patchify(image, patch_size=args.patch_size)
+        save_pickle(shapes, pickle_folder+'shapes.pickle')
 
     # Flag for whether to rescale the image 
     need_scaling_flag = False  # True if image resolution ≠ 0.5µm (or desired size) per pixel
