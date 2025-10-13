@@ -32,6 +32,7 @@ conda create -n S2Omics python=3.11
 conda activate S2Omics
 pip install -r requirements.txt
 # if your server has a very old version of GCC, you can try: pip install -r requirements_old_gcc.txt
+python -m ipykernel install --user --name S2Omics --display-name S2Omics
 # before execution, please write privileges to the .sh files
 chmod +x run_*
 ./run_roi_selection_demo.sh
