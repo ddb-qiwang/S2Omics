@@ -20,7 +20,7 @@ google drive: https://drive.google.com/drive/folders/1z1nk0sF_e25LKMyHxJVMtROFju
 
 Please place both 'checkpoints' and 'demo' folder under the 'S2Omics' main folder.
 
-==We offer four tutorials handling diverse cases:==
+<mark>We offer four tutorials handling diverse cases:</mark>
 
 * **Tutorial 1** is about designing **VisiumHD** experiment on a colorectal cancer section, including ROI selection and cell type label broadcasting
 
