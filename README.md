@@ -1,13 +1,11 @@
 # Designing smart spatial omics experiments with S2Omics
-Musu Yuan, Kaitian Jin, Hanying Yan, Amelia Schroeder, Chunyu Luo, Sicong Yao, Bernhard Domoulin, Jonathan Levinsohn, Tianhao Luo, Jean R. Clemenceau, Inyeop Jang, Minji Kim, Minghua Deng, Emma E. Furth, Parker Wilson, Jeong Hwan Park, Katalin Susztak, Tae Hyun Hwang, Mingyao Li*
+Musu Yuan, Kaitian Jin, Hanying Yan, Amelia Schroeder, Chunyu Luo, Sicong Yao, Bernhard Dumoulin, Jonathan Levinsohn, Tianhao Luo, Jean R. Clemenceau, Inyeop Jang, Minji Kim, Yunhe Liu, Minghua Deng, Emma E. Furth, Parker Wilson, Anupma Nayak, Idania Lubo, Luisa Maren Solis Soto, Linghua Wang, Jeong Hwan Park, Katalin Susztak, Tae Hyun Hwang, Mingyao Li
 
 S2Omics is an end-to-end workflow that automatically selects regions of interest for spatial omics experiments using histology images. Additionally, S2Omics utilizes the resulting spatial omics data to virtually reconstruct spatial molecular profiles across entire tissue sections, providing valuable insights to guide subsequent experimental steps. Our histology image-guided design significantly reduces experimental costs while preserving critical spatial molecular variations, thereby making spatial omics studies more accessible and cost-effective.
 
 <div align="center">
     <img src="/docs/source/images/S2Omics_pipeline.png" alt="S2Omics_pipeline" width="85%">
 </div>
-
-S2Omics-main is based on foundation model UNI, Virchow2, Prov-GigaPath and is aimed for single-slice ROI selection. S2Omics-HIPT is based on HIPT which cost less time but more GPU memories. S2Omics-3D is for multiple-slices ROI selection.
 
 Paper link: https://www.biorxiv.org/content/10.1101/2025.09.21.677634v1
 
@@ -16,16 +14,26 @@ ReadTheDocs page: https://s2omics.readthedocs.io/en/latest/
 The paper is now accepted in principle by **Nature Cell Biology**
 
 # Get started
-To run the demo, first please download the demo data and pretrained model checkpoints file from:
+To run the tutorials, first please download the demo data and pretrained model checkpoints file from:
 
 google drive: https://drive.google.com/drive/folders/1z1nk0sF_e25LKMyHxJVMtROFjuWet2G_?usp=sharing
 
 Please place both 'checkpoints' and 'demo' folder under the 'S2Omics' main folder.
 
-In this demo, we mimic the situation that we need to select a 6.5 mm*6.5 mm ROI for Visium HD experiment from a colorectal cancer tissue section. To run the ROI selection (takes about 25 minutes with GPU),
+We offer four tutorials handling diverse cases:
+
+**Tutorial 1** is about designing **VisiumHD** experiment on a colorectal cancer section, including ROI selection and cell type label broadcasting
+
+**Tutorial 2** is about designing **CosMx** experiment on two kidney sections (a healthy one and a T2D one), including both ROI and FOV selection
+
+**Tutorial 3** is about designing spatial omics experiment on three consecutive breast cancer sections, including ROI selection
+
+**Tutorial 4** is about designing **TMA** experiment on a slide containing multiple breast cancer biopsyes, this tutorial includes circle-shaped ROI selection
+
+Before runing the tutorials, please create environment as follows:
 ```python
 # download S2Omics package
-git clone -b main https://github.com/ddb-qiwang/S2Omics
+git clone https://github.com/ddb-qiwang/S2Omics
 cd S2Omics
 # We recommand using Python 3.11 or above
 conda create -n S2Omics python=3.11
@@ -33,20 +41,12 @@ conda activate S2Omics
 pip install -r requirements.txt
 # if your server has a very old version of GCC, you can try: pip install -r requirements_old_gcc.txt
 python -m ipykernel install --user --name S2Omics --display-name S2Omics
-# before execution, please write privileges to the .sh files
-chmod +x run_*
-./run_roi_selection_demo.sh
 ```
 
 A main output of ROI selection program will be like:
 <div align="center">
     <img src="/docs/source/images/best_roi_on_histology_segmentations_scaled.jpg" alt="roi_selection" width="60%">
 </div>
-
-Now, suppose we've obtained the Visium HD data based on which we annotate the superpixels inside the ROI with cell types (annotation_file.csv).To broadcast the cell type information inside the ROI to thw whole tissue slide, we can run following codes (takes about 20 hours with GPU),
-```python
-./run_label_broadcasting_demo.sh
-```
 
 The output of cell type broadcasting program will be like:
 <div align="center">
