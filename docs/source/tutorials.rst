@@ -21,7 +21,7 @@ We offer four tutorials handling diverse cases:
 
 .. toctree::
    :caption: Tutorials
-   :maxdepth: 2
+   :maxdepth: 1
 
    notebooks/Tutorial_1_VisiumHD_ROI_selection_colon.ipynb
    notebooks/Tutorial_2_CosMx_FOV_selection_kidney.ipynb
