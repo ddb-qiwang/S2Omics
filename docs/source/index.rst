@@ -27,7 +27,7 @@ Contents
    :maxdepth: 2
    :caption: Documentation
 
-   installation
+   install
    tutorials
    usage
    api
