@@ -87,140 +87,175 @@ Apply a foundation model (UNI / Virchow / GigaPath) to extract hierarchical feat
 - Hierarchical embeddings saved in multiple `.pickle` parts, saved under save_folder/pickle_files
 
 ----------------------------------------
-p4_get_histology_segmentation
+s2omics.single_section.p4_get_histology_segmentation
 ----------------------------------------
+
 **Purpose:**  
 Cluster PCA-reduced embeddings into morphological clusters using chosen algorithm.
 
-**Outputs:**
+**Parameters:**
+
+- prefix: folder path of H&E stained image, '/home/H&E_image/' for an example
+
+- save_folder: the name of save folder
+
+- foundation_model: the name of foundation model used for feature extraction, user can select from uni, virchow and gigapath
+
+- cache_path: the path to exatracted feature embedding files
+
+- down_samp_step: the down-sampling step for feature extraction, default = 10, which refers to 1:10^2 down-sampling rate
+
+- clustering_method: the clustering method used for H&E image segmentation, user can select among {'kmeans': k-means++, 'fcm': fuzzy c-means, 'louvain': Louvain algorithm, 'leiden': Leiden algorithm}, default = 'kmeans'
+
+- n_clusters: initial number of clusters for histology segmentation when using kmeans or fcm for clustering. default=20. Please notice that this is not the final number of clusters when clustering method is fcm.
+
+- resolution: resolution for leiden algorithm, default=1.0
+
+- if_evaluate: if evaluate the clustering results by quantitative metrics, default=False
+
+**Return:**
+
 - `cluster_image.pickle` – Cluster map.
+
 - Cluster RGB image.
 
-**CLI Arguments:**
-
-+--------------------+----------+---------------------------------------------------+
-| Argument           | Default  | Description                                       |
-+====================+==========+===================================================+
-| prefix             | (pos.)   | Input folder.                                     |
-+--------------------+----------+---------------------------------------------------+
-| --save_folder      | S2Omics_output | Output directory.                           |
-+--------------------+----------+---------------------------------------------------+
-| --clustering_method| kmeans   | kmeans, fcm, agglo, bisect, birch, louvain, leiden |
-+--------------------+----------+---------------------------------------------------+
-| --n_clusters       | 20       | Initial clusters (kmeans/fcm).                     |
-+--------------------+----------+---------------------------------------------------+
-| --resolution       | 1.0      | Graph-based method resolution (louvain/leiden).    |
-+--------------------+----------+---------------------------------------------------+
-
-.. automodule:: p4_get_histology_segmentation
-   :members:
-
 ----------------------------------------
-p5_merge_over_clusters
+s2omics.single_section.p5_merge_over_clusters
 ----------------------------------------
+
 **Purpose:**  
+
 Merge morphological clusters with high similarity to target number using hierarchical linkage.
 
-**Outputs:**
+**Parameters:**
+
+- prefix: folder path of H&E stained image, '/home/H&E_image/' for an example
+
+- save_folder: the name of save folder
+
+- target_n_clusters: the final number of clusters user want to preserve, default=15
+
+**Return:**
+
 - `adjusted_cluster_image.pickle` – Merged cluster map.
+
 - Adjusted segmentation image.
 
-**CLI Arguments:**
-
-+----------------------+----------+---------------------------------------------+
-| Argument             | Default  | Description                                 |
-+======================+==========+=============================================+
-| prefix               | (pos.)   | Input folder.                               |
-+----------------------+----------+---------------------------------------------+
-| --save_folder        | S2Omics_output | Output directory.                     |
-+----------------------+----------+---------------------------------------------+
-| --target_n_clusters  | 15       | Desired final cluster number.               |
-+----------------------+----------+---------------------------------------------+
-
-.. automodule:: p5_merge_over_clusters
-   :members:
-
 ----------------------------------------
-p6_roi_selection_rectangle
+s2omics.single_section.p6_roi_selection_rectangle
 ----------------------------------------
+
 **Purpose:**  
+
 Automatically select rectangular ROIs based on scoring criteria:
+
 - **Scale score** (size coverage)
+
 - **Coverage score** (valid cell proportion)
+
 - **Balance score** (match desired cluster composition)
 
-**Outputs:**
+**Parameters:**
+
+- prefix: folder path of H&E stained image, '/home/H&E_image/' for an example
+
+- save_folder: the name of save folder
+
+- has_annotation: if True, use the cell type annotation file instead of histology segmentation results for ROI selection
+
+- cache_path: if user want to specify another segmentation result for ROi selection, please insert the path here
+
+- down_samp_step: the down-sampling step for feature extraction, default = 10, which refers to 1:10^2 down-sampling rate
+
+- roi_size: the physical size (mm x mm) of ROIs, default = [6.5, 6.5] which is the physical size for Visium HD ROI
+
+- rotation_seg: the number of difference angles ROI can rotate, default=6 means the a ROI can rotate to 30/60/90/120/150/180 degrees
+
+- num_roi: number of ROIs to be selected, default = 0 refers to automatic determination
+
+- optimal_roi_thres: hyper-parameter for automatic ROI determination, default = 0.03 is suitable for most cases, recommend to be set as 0 when selecting FOVs. If you want to select more ROIs, please lower this parameter
+
+- fusion_weights: the weight of three scores, default=[0.33,0.33,0.33], the sum of three weights should be equal to 1 (if not they will be normalized)
+
+- emphasize_clusters, discard_clusters: prior information about interested and not-interested histology clusters, default = [],[]
+
+- prior_preference: the larger this parameter is, S2Omics will focus more on those interested histology clusters, default=  1
+
+**Return:**
+
 - ROI visualizations on segmentation and raw histology image.
+
 - `best_roi.pickle` – ROI details and score breakdown.
 
-**CLI Arguments:**
-
-+--------------------+----------+------------------------------------------------------+
-| Argument           | Default  | Description                                          |
-+====================+==========+======================================================+
-| prefix             | (pos.)   | Input folder.                                        |
-+--------------------+----------+------------------------------------------------------+
-| --save_folder      | S2Omics_output | Output folder.                                 |
-+--------------------+----------+------------------------------------------------------+
-| --roi_size         | [6.5,6.5]| Physical size in mm (width height).                  |
-+--------------------+----------+------------------------------------------------------+
-| --num_roi          | 0        | Number of ROIs (0 = auto-determine optimal).         |
-+--------------------+----------+------------------------------------------------------+
-| --positive_prior   | []       | Clusters to emphasize.                               |
-+--------------------+----------+------------------------------------------------------+
-| --negative_prior   | []       | Clusters to de-prioritize.                           |
-+--------------------+----------+------------------------------------------------------+
-| --prior_preference | 2        | Weight for emphasis clusters.                        |
-
-.. automodule:: p6_roi_selection_rectangle
-   :members:
-
 ----------------------------------------
-p6_roi_selection_circle
+s2omics.single_section.p6_roi_selection_circle
 ----------------------------------------
+
 **Purpose:**  
 Same as rectangular ROI selection, but using circular geometry. Suitable for TMA core or circular ROI scans.
 
-**CLI Arguments:** Similar to rectangle, with `--roi_size` interpreted as radius.
+**Parameters:**
 
-.. automodule:: p6_roi_selection_circle
-   :members:
+- prefix: folder path of H&E stained image, '/home/H&E_image/' for an example
+
+- save_folder: the name of save folder
+
+- has_annotation: if True, use the cell type annotation file instead of histology segmentation results for ROI selection
+
+- cache_path: if user want to specify another segmentation result for ROi selection, please insert the path here
+
+- down_samp_step: the down-sampling step for feature extraction, default = 10, which refers to 1:10^2 down-sampling rate
+
+- roi_size: the physical size (mm x mm) of circle-shaped ROIs, default = [0.5, 0.5] means the r=0.5
+
+- rotation_seg: the number of difference angles ROI can rotate, default=6 means the a ROI can rotate to 30/60/90/120/150/180 degrees
+
+- num_roi: number of ROIs to be selected, default = 0 refers to automatic determination
+
+- optimal_roi_thres: hyper-parameter for automatic ROI determination, default = 0.03 is suitable for most cases, recommend to be set as 0 when selecting FOVs. If you want to select more ROIs, please lower this parameter
+
+- fusion_weights: the weight of three scores, default=[0.33,0.33,0.33], the sum of three weights should be equal to 1 (if not they will be normalized)
+
+- emphasize_clusters, discard_clusters: prior information about interested and not-interested histology clusters, default = [],[]
+
+- prior_preference: the larger this parameter is, S2Omics will focus more on those interested histology clusters, default=  1
+
+**Return:**
+
+- ROI visualizations on segmentation and raw histology image.
+
+- `best_roi.pickle` – ROI details and score breakdown.
 
 ----------------------------------------
-p7_cell_label_broadcasting
+s2omics.single_section.p7_cell_label_broadcasting
 ----------------------------------------
+
 **Purpose:**  
-Train an Autoencoder-based classifier using ROI-scale spatial omics cell annotations, then broadcast labels to the entire slide.
 
-**Outputs:**
+After user obtained the spatial omics data of the selected small ROI, we can annotate the superpixels in the paired H&E image with cell type labels.
+
+Afterwards, we can transfer the label information to the previously stained whole-slide H&E image to obtain whole-slide level cell type spatial distribution.
+
+This function trains an Autoencoder-based classifier using ROI-scale spatial omics cell annotations, then broadcast labels to the entire slide.
+
+**Parameters:**
+
+- WSI_datapath: path to the whole slide H&E image
+
+- WSI_save_folder: save path to the whole slide H&E image results
+                      
+- SO_datapath: path to the spatial omics data and accroding H&E image
+
+- SO_save_folder: save path to the spatial omics data and accroding H&E image results
+                      
+- WSI_cache_path: path to the extracted histology feature of the WSI, if it is already obtained, default=''
+
+- SO_cache_path: path to the extracted histology feature of the SO, if it is already obtained, default=''
+
+- device: default='cuda:0'
+
+- foundation_model: the name of foundation model used for feature extraction, user can select from uni, virchow and gigapath
+
+**Return:**
+
 - `S2Omics_whole_slide_prediction.jpg` – Predicted whole-slide cell type map.
-
-**CLI Arguments:**
-
-+-------------------+----------+--------------------------------------------------+
-| Argument          | Default  | Description                                      |
-+===================+==========+==================================================+
-| WSI_datapath      | (pos.)   | Whole-slide input folder.                        |
-+-------------------+----------+--------------------------------------------------+
-| SO_datapath       | (pos.)   | Spatial omics ROI input folder.                  |
-+-------------------+----------+--------------------------------------------------+
-| --foundation_model| uni      | Model for embeddings.                            |
-+-------------------+----------+--------------------------------------------------+
-| --device          | cuda     | Compute device.                                  |
-
-.. automodule:: p7_cell_label_broadcasting
-   :members:
-
-----------------------------------------
-Utility Modules
-----------------------------------------
-Low-level utilities used in multiple steps (I/O helpers, seeding, image operations).
-
-.. automodule:: s1_utils
-   :members:
-
-.. automodule:: s2_label_broadcasting
-   :members:
-
-.. automodule:: utils
-   :members:
