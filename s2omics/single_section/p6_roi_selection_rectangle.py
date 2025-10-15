@@ -301,7 +301,7 @@ def roi_selection_for_single_section(prefix, save_folder,
     he = load_image(f'{prefix}he.jpg')
     shapes = load_pickle(pickle_folder+'shapes.pickle')
     image_shape = shapes['tiles']
-    dpi = 600
+    dpi = 1200
     length = np.max(image_shape)//100
     plt_figsize = (image_shape[1]//100,image_shape[0]//100)
     if dpi*length > np.power(2,16):
