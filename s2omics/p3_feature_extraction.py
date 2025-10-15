@@ -126,12 +126,11 @@ def histology_feature_extraction(prefix, save_folder,
     extracting hierarchical features of superpixels using a modified version of current pathology foundation models
     Parameters:
         prefix: folder path of H&E stained image, '/home/H&E_image/' for an example
-        save_folder: the name of save folder, user can input the complete path or just the folder name, 
-            if so, the folder will be placed under the prefix folder
+        save_folder: the name of save folder
         foundation_model: the name of foundation model used for feature extraction, user can select from uni, virchow and gigapath
         ckpt_path: the path to foundation model parameter files (should be named as 'pytorch_model.bin'), './checkpoints/uni/' for an example
-        device: default = 'cuda'
-        batch_size: default = 128
+        device: default = 'cuda：0'
+        batch_size: default =32
         down_samp_step: the down-sampling step, default = 10 refers to only extract features for superpixels whose row_index and col_index can both be divided by 10 (roughly 1:100 down-sampling rate). down_samp_step = 1 means extract features for every superpixel
         num_workers: default = 4
     '''
