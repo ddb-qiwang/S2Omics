@@ -24,8 +24,8 @@ We offer four tutorials handling diverse cases:
    :caption: Tutorials
    :maxdepth: 1
 
-   notebooks/Tutorial_1_VisiumHD_ROI_selection_colon
-   notebooks/Tutorial_2_CosMx_FOV_selection_kidney
-   notebooks/Tutorial_3_Consecutive_ROI_selection_breast
-   notebooks/Tutorial_4_TMA_selection_breast
+   source/notebooks/Tutorial_1_VisiumHD_ROI_selection_colon
+   source/notebooks/Tutorial_2_CosMx_FOV_selection_kidney
+   source/otebooks/Tutorial_3_Consecutive_ROI_selection_breast
+   source/notebooks/Tutorial_4_TMA_selection_breast
 
