@@ -261,8 +261,7 @@ def roi_selection_for_single_section(prefix, save_folder,
     select best ROI(s)
     Parameters:
         prefix: folder path of H&E stained image, '/home/H&E_image/' for an example
-        save_folder: the name of save folder, user can input the complete path or just the folder name, 
-            if so, the folder will be placed under the prefix folder
+        save_folder: the name of save folder
         has_annotation: if True, use the cell type annotation file instead of histology segmentation results for ROI selection
         cache_path: if user want to specify another segmentation result for ROi selection, please insert the path here
         down_samp_step: the down-sampling step for feature extraction, default = 10, which refers to 1:10^2 down-sampling rate
