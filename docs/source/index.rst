@@ -32,8 +32,6 @@ Contents
    usage
    api
 
-Indices and tables
+Citation
 ------------------
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+If you use this tool in your research, please cite our work.
