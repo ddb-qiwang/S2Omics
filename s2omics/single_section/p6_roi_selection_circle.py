@@ -66,7 +66,7 @@ def region_selection_few(cluster_image, valid_mask, num_clusters, window_size, t
         for roi in range(num_roi):      
             centroid = [x_centroids[roi], y_centroids[roi]]
             tmp_roi.append(centroid)
-            tmp_mask = np.zeros(np.shape(cluster_image), dtype=np.uint8)  # 返回与图像 img1 尺寸相同的全零数组
+            tmp_mask = np.zeros(np.shape(cluster_image), dtype=np.uint8) 
             cv2.circle(tmp_mask, centroid, window_size[0], (255, 255, 255), -1)
             tmp_roi_mask.append(tmp_mask.astype('bool'))
 
@@ -211,12 +211,11 @@ def roi_selection_for_single_section(prefix, save_folder,
     select best ROI(s)
     Parameters:
         prefix: folder path of H&E stained image, '/home/H&E_image/' for an example
-        save_folder: the name of save folder, user can input the complete path or just the folder name, 
-            if so, the folder will be placed under the prefix folder
+        save_folder: the name of save folder
         has_annotation: if True, use the cell type annotation file instead of histology segmentation results for ROI selection
         cache_path: if user want to specify another segmentation result for ROi selection, please insert the path here
         down_samp_step: the down-sampling step for feature extraction, default = 10, which refers to 1:10^2 down-sampling rate
-        roi_size: the physical size (mm x mm) of ROIs, default = [6.5, 6.5] which is the physical size for Visium HD ROI
+        roi_size: the physical size (mm x mm) of circle-shaped ROIs, default = [0.5, 0.5] means the r=0.5
         num_roi: number of ROIs to be selected, default = 0 refers to automatic determination
         optimal_roi_thres: hyper-parameter for automatic ROI determination, default = 0.03 is suitable for most cases, recommend to be set as 0 when selecting FOVs. If you want to select more ROIs, please lower this parameter
         fusion_weights: the weight of three scores, default=[0.33,0.33,0.33], the sum of three weights should be equal to 1 (if not they will be normalized)
