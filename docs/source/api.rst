@@ -11,12 +11,13 @@ s2omics.p1_histology_preprocess
 Scale and pad raw H&E stained images to a target resolution so that image dimensions are divisible by the patch size.
 
 **Parameters:**
+
 +--------------------+----------+---------------------------------------------------+
 | Argument           | Default  | Description                                       |
 +====================+==========+===================================================+
-| prefix             |          | path to H&E image folder, str                            |
+| prefix             |          | path to H&E image folder, str                     |
 +--------------------+----------+---------------------------------------------------+
-| --show_image      | False | if output the H&E image or not                         |
+| --show_image       | False    | if output the H&E image or not                        |
 +--------------------+----------+---------------------------------------------------+
 
 
