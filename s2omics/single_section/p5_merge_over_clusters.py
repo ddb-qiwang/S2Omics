@@ -14,8 +14,7 @@ def merge_over_clusters(prefix, save_folder,
     merging histology clusters with high similarity
     Parameters:
         prefix: folder path of H&E stained image, '/home/H&E_image/' for an example
-        save_folder: the name of save folder, user can input the complete path or just the folder name, 
-            if so, the folder will be placed under the prefix folder
+        save_folder: the name of save folder
         target_n_clusters: the final number of clusters user want to preserve
     '''
      # load in previously obtained params
