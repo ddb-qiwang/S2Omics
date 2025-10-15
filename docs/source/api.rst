@@ -280,6 +280,8 @@ This function trains an Autoencoder-based classifier using ROI-scale spatial omi
 s2omics.multiple_sections.p4_get_histology_segmentation
 ----------------------------------------
 
+**get_joint_histology_segmentation()**
+
 **Purpose:**  
 Jointly cluster PCA-reduced embeddings of multiple slides into morphological clusters using chosen algorithm.
 
