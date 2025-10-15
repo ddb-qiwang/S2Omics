@@ -11,8 +11,14 @@ s2omics.p1_histology_preprocess
 Scale and pad raw H&E stained images to a target resolution so that image dimensions are divisible by the patch size.
 
 **Parameters:**
-- prefix: path to H&E image folder, str
-- show_image: if output the H&E image or not, bool, default = False
++--------------------+----------+---------------------------------------------------+
+| Argument           | Default  | Description                                       |
++====================+==========+===================================================+
+| prefix             |          | path to H&E image folder, str                            |
++--------------------+----------+---------------------------------------------------+
+| --show_image      | False | if output the H&E image or not                         |
++--------------------+----------+---------------------------------------------------+
+
 
 **Return:**
 - `he-scaled.jpg`: rescaled image. Saved under prefix folder
@@ -26,6 +32,19 @@ Split histology image (`he.jpg`) into superpixels and filter out tiles without n
 or with low structural quality, using density and texture analysis. The new version of S2-omics use QC package HistoSweep for this step.
 
 **Parameters:**
++--------------------+----------+---------------------------------------------------+
+| Argument           | Default  | Description                                       |
++====================+==========+===================================================+
+| prefix             | (pos.)   | Input folder.                                     |
++--------------------+----------+---------------------------------------------------+
+| --save_folder      | S2Omics_output | Output directory.                           |
++--------------------+----------+---------------------------------------------------+
+| --clustering_method| kmeans   | kmeans, fcm, agglo, bisect, birch, louvain, leiden |
++--------------------+----------+---------------------------------------------------+
+| --n_clusters       | 20       | Initial clusters (kmeans/fcm).                     |
++--------------------+----------+---------------------------------------------------+
+| --resolution       | 1.0      | Graph-based method resolution (louvain/leiden).    |
++--------------------+----------+---------------------------------------------------+
 - prefix: path to H&E image folder, str
 - save_folder: path to results folder, str
 - density_thresh: HistoSweep parameter, threshold for identifying low density superpixels, int, default=100
