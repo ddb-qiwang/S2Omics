@@ -52,7 +52,7 @@ def get_joint_histology_segmentation(prefix_list, save_folder_list,
 
     n_images = len(prefix_list)
 
-    dpi = 600
+    dpi = 1200
     save_folder_list = []
     image_folder_list = []
     pickle_folder_list = []
