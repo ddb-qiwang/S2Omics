@@ -5,8 +5,10 @@ Below are the main modules in the S2Omics pipeline, with purpose, CLI parameters
 and I/O descriptions. Autodoc will generate detailed function and class listings from docstrings.
 
 ----------------------------------------
-s2omics.p1_histology_preprocess.histology_preprocess
+s2omics.p1_histology_preprocess
 ----------------------------------------
+
+**histology_preprocess()**
 
 **Purpose:**  
 
@@ -26,8 +28,10 @@ Scale and pad raw H&E stained images to a target resolution so that image dimens
 - `he.jpg`: scaled + padded image. Saved under prefix folder
 
 ----------------------------------------
-s2omics.p2_superpixel_quality_control.superpixel_quality_control
+s2omics.p2_superpixel_quality_control
 ----------------------------------------
+
+**superpixel_quality_control()**
 
 **Purpose:**  
 
@@ -57,8 +61,10 @@ or with low structural quality, using density and texture analysis. The new vers
 - `mask-small.png`: binary mask, saved under HistoSweep_output folder
 
 ----------------------------------------
-s2omics.p3_feature_extraction.feature_extraction
+s2omics.p3_feature_extraction
 ----------------------------------------
+
+**feature_extraction()**
 
 **Purpose:**  
 
@@ -87,8 +93,10 @@ Apply a foundation model (UNI / Virchow / GigaPath) to extract hierarchical feat
 - Hierarchical embeddings saved in multiple `.pickle` parts, saved under save_folder/pickle_files
 
 ----------------------------------------
-s2omics.single_section.p4_get_histology_segmentation.get_histology_segmentation
+s2omics.single_section.p4_get_histology_segmentation
 ----------------------------------------
+
+**get_histology_segmentation()**
 
 **Purpose:**  
 Cluster PCA-reduced embeddings into morphological clusters using chosen algorithm.
@@ -120,8 +128,10 @@ Cluster PCA-reduced embeddings into morphological clusters using chosen algorith
 - Cluster RGB image.
 
 ----------------------------------------
-s2omics.single_section.p5_merge_over_clusters.merge_over_clusters
+s2omics.single_section.p5_merge_over_clusters
 ----------------------------------------
+
+**merge_over_clusters()**
 
 **Purpose:**  
 
@@ -142,8 +152,10 @@ Merge morphological clusters with high similarity to target number using hierarc
 - Adjusted segmentation image.
 
 ----------------------------------------
-s2omics.single_section.p6_roi_selection_rectangle.roi_selection_for_single_section
+s2omics.single_section.p6_roi_selection_rectangle
 ----------------------------------------
+
+**roi_selection_for_single_section()**
 
 **Purpose:**  
 
@@ -188,8 +200,10 @@ Automatically select rectangular ROIs based on scoring criteria:
 - `best_roi.pickle`: ROI details and score breakdown.
 
 ----------------------------------------
-s2omics.single_section.p6_roi_selection_circle.roi_selection_for_single_section
+s2omics.single_section.p6_roi_selection_circle
 ----------------------------------------
+
+**roi_selection_for_single_section()**
 
 **Purpose:**  
 Same as rectangular ROI selection, but using circular geometry. Suitable for TMA core or circular ROI scans.
@@ -227,8 +241,10 @@ Same as rectangular ROI selection, but using circular geometry. Suitable for TMA
 - `best_roi.pickle`: ROI details and score breakdown.
 
 ----------------------------------------
-s2omics.single_section.p7_cell_label_broadcasting.label_broadcasting
+s2omics.single_section.p7_cell_label_broadcasting
 ----------------------------------------
+
+**label_broadcasting()**
 
 **Purpose:**  
 
@@ -261,7 +277,7 @@ This function trains an Autoencoder-based classifier using ROI-scale spatial omi
 - `S2Omics_whole_slide_prediction.jpg`:  Predicted whole-slide cell type map.
 
 ----------------------------------------
-s2omics.multiple_sections.p4_get_histology_segmentation.get_joint_histology_segmentation
+s2omics.multiple_sections.p4_get_histology_segmentation
 ----------------------------------------
 
 **Purpose:**  
@@ -294,8 +310,10 @@ Jointly cluster PCA-reduced embeddings of multiple slides into morphological clu
 - Cluster RGB image.
 
 ----------------------------------------
-s2omics.multiple_sections.p6_roi_selection_rectangle.roi_selection_for_multiple_sections
+s2omics.multiple_sections.p6_roi_selection_rectangle
 ----------------------------------------
+
+**roi_selection_for_multiple_sections()**
 
 **Purpose:**  
 
@@ -340,8 +358,10 @@ Automatically select rectangular ROIs based on scoring criteria:
 - `best_roi.pickle`: ROI details and score breakdown.
 
 ----------------------------------------
-s2omics.single_section.p6_roi_selection_circle.roi_selection_for_multiple_sections
+s2omics.single_section.p6_roi_selection_circle
 ----------------------------------------
+
+**roi_selection_for_multiple_sections()**
 
 **Purpose:**  
 Same as rectangular ROI selection, but using circular geometry. Suitable for TMA core or circular ROI scans.
@@ -379,8 +399,10 @@ Same as rectangular ROI selection, but using circular geometry. Suitable for TMA
 - `best_roi.pickle`: ROI details and score breakdown.
 
 ----------------------------------------
-s2omics.multiple_sections.p6_cell_label_broadcasting.label_broadcasting
+s2omics.multiple_sections.p6_cell_label_broadcasting
 ----------------------------------------
+
+**label_broadcasting()**
 
 **Purpose:**  
 
