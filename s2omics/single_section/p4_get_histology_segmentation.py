@@ -21,17 +21,17 @@ def get_histology_segmentation(prefix, save_folder,
     extracting hierarchical features of superpixels using a modified version of UNI
     Parameters:
         prefix: folder path of H&E stained image, '/home/H&E_image/' for an example
-        save_folder: the name of save folder, user can input the complete path or just the folder name, 
-            if so, the folder will be placed under the prefix folder
+        save_folder: the name of save folder
         foundation_model: the name of foundation model used for feature extraction, user can select from uni, virchow and gigapath
         cache_path: the path to exatracted feature embedding files
         down_samp_step: the down-sampling step for feature extraction, default = 10, which refers to 1:10^2 down-sampling rate
-        n_pc_s: the number of principle components in PCA, default = 80
         clustering_method: the clustering method used for H&E image segmentation, user can select among 
             'kmeans': k-means++, 'fcm': fuzzy c-means, 'louvain': Louvain algorithm, 'leiden': Leiden algorithm 
             default = 'kmeans'
         n_clusters: initial number of clusters for histology segmentation when using kmeans or fcm for clustering. 
             Please notice that this is not the final number of clusters when clustering method is fcm.
+        resolution: resolution for leiden algorithm, default=1.0
+        if_evaluate: if evaluate the clustering results by quantitative metrics, default=False
     '''
     if not os.path.exists(save_folder):
         os.makedirs(save_folder)
