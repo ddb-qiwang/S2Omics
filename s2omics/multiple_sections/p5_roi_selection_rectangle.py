@@ -180,7 +180,7 @@ def region_selection_random(save_folder, cluster_image, cluster_image_rgb, valid
                                            window_size[0],window_size[1],color='red',fill=False,
                                            linewidth=2,angle=-best_rotate[i]))
             plt.savefig(save_folder+f'best_{curr_num_roi+1}_roi_on_histo_clusters.jpg', 
-                        format='jpg', dpi=600, bbox_inches='tight',pad_inches=0)
+                        format='jpg', dpi=1200, bbox_inches='tight',pad_inches=0)
         # if roi score increased less than optimal_roi_thres, there's no need to select this one more ROI  
         if best_roi_score[0] - pre2_best_roi_score[0] < 2*optimal_roi_thres and pre1_best_roi_score[0] - pre2_best_roi_score[0] < optimal_roi_thres and curr_num_roi >= num_roi:  
             curr_num_roi = len(best_roi)
@@ -219,7 +219,7 @@ def region_selection_random(save_folder, cluster_image, cluster_image_rgb, valid
                                            window_size[0],window_size[1],color='red',fill=False,
                                            linewidth=2,angle=-best_rotate[i]))
             plt.savefig(save_folder+f'best_{curr_num_roi+1}_roi_on_histo_clusters.jpg', 
-                        format='jpg', dpi=600, bbox_inches='tight',pad_inches=0)
+                        format='jpg', dpi=1200, bbox_inches='tight',pad_inches=0)
         # if roi score increased less than optimal_roi_thres, there's no need to select this one more ROI
         if best_roi_score[0] - pre2_best_roi_score[0] < 2*optimal_roi_thres and pre1_best_roi_score[0] - pre2_best_roi_score[0] < optimal_roi_thres and curr_num_roi >= num_roi:  
             curr_num_roi = len(best_roi)
@@ -287,7 +287,7 @@ def roi_selection_for_multiple_sections(prefix_list, save_folder_list,
 
     n_images = len(prefix_list)
 
-    dpi = 600
+    dpi = 1200
     save_folder_list = []
     image_folder_list = []
     pickle_folder_list = []
@@ -430,10 +430,10 @@ def roi_selection_for_multiple_sections(prefix_list, save_folder_list,
                                     linewidth=2,angle=-best_rotate[i]))
     if has_annotation:
         plt.savefig(main_output_folder+'best_roi_on_annotation.jpg', 
-                format='jpg', dpi=600, bbox_inches='tight',pad_inches=0)
+                format='jpg', dpi=1200, bbox_inches='tight',pad_inches=0)
     else:
         plt.savefig(main_output_folder+'best_roi_on_histology_segmentations.jpg', 
-                    format='jpg', dpi=600, bbox_inches='tight',pad_inches=0)
+                    format='jpg', dpi=1200, bbox_inches='tight',pad_inches=0)
     plt.close()
     if has_annotation:
         print('Best ROI on annotation image is stored at '+main_output_folder+'best_roi_on_annotation.jpg')
