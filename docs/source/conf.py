@@ -2,7 +2,7 @@
 
 # -- Project information
 
-project = 'S2Omics'
+project = 'S2-omics'
 copyright = '2025, MusuYuan'
 author = 'MusuYuan'
 

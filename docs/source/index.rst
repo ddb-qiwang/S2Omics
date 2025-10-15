@@ -1,7 +1,7 @@
-Welcome to S2Omics's documentation!
+Welcome to S2-omics's documentation!
 ====================================
 
-**S2Omics** is an end-to-end workflow for designing smart spatial omics experiments using histology images.
+**S2-omics** is an end-to-end workflow for designing smart spatial omics experiments using histology images.
 It automatically selects optimal Regions of Interest (ROIs) for spatial omics acquisition and utilizes the resulting data to virtually reconstruct spatial molecular profiles across entire tissue sections.
 This minimizes experimental cost while preserving critical spatial molecular variations.
 
@@ -9,11 +9,11 @@ Key Features
 ------------
 - **Histology image-guided ROI selection** using foundation models (UNI, Virchow2, Prov-GigaPath, HIPT).
 - **Whole-slide spatial reconstruction** from partial spatial omics data.
-- **3D multi-slice ROI selection** capability (S2Omics-3D).
+- **3D multi-slice ROI selection** capability.
 - Modular pipeline for preprocessing, segmentation, clustering, ROI selection, and label broadcasting.
 
 .. image:: images/S2Omics_pipeline.png
-   :alt: S2Omics pipeline
+   :alt: S2-omics pipeline
    :width: 85%
    :align: center
 
@@ -27,6 +27,8 @@ Contents
    :maxdepth: 2
    :caption: Documentation
 
+   installation
+   tutorials
    usage
    api
 
