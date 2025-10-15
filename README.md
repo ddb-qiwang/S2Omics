@@ -1,4 +1,4 @@
-# Designing smart spatial omics experiments with S2-omics
+# Smart spatial omics (S2-Omics) optimizes region-of-interest selection to capture molecular heterogeneity in diverse tissues
 Musu Yuan, Kaitian Jin, Hanying Yan, Amelia Schroeder, Chunyu Luo, Sicong Yao, Bernhard Dumoulin, Jonathan Levinsohn, Tianhao Luo, Jean R. Clemenceau, Inyeop Jang, Minji Kim, Yunhe Liu, Minghua Deng, Emma E. Furth, Parker Wilson, Anupma Nayak, Idania Lubo, Luisa Maren Solis Soto, Linghua Wang, Jeong Hwan Park, Katalin Susztak, Tae Hyun Hwang, Mingyao Li*
 
 S2-omics is an end-to-end workflow that automatically selects regions of interest for spatial omics experiments using histology images. Additionally, S2-omics utilizes the resulting spatial omics data to virtually reconstruct spatial molecular profiles across entire tissue sections, providing valuable insights to guide subsequent experimental steps. Our histology image-guided design significantly reduces experimental costs while preserving critical spatial molecular variations, thereby making spatial omics studies more accessible and cost-effective.
@@ -32,15 +32,33 @@ Please place both 'checkpoints' and 'demo' folder under the 'S2Omics' main folde
 
 Before runing the tutorials, please create environment as follows:
 ```python
-# download S2Omics package
+# download S2-omics package
 git clone https://github.com/ddb-qiwang/S2Omics
 cd S2Omics
 # We recommand using Python 3.11 or above
-conda create -n S2Omics python=3.11
-conda activate S2Omics
+conda create -n s2omics python=3.11
+conda activate s2omics
 pip install -r requirements.txt
 # if your server has a very old version of GCC, you can try: pip install -r requirements_old_gcc.txt
-python -m ipykernel install --user --name S2Omics --display-name S2Omics
+python -m ipykernel install --user --name s2omics --display-name s2omics
+```
+
+User can either refer to the tutorial notebooks or run the python codes in the main folder.
+
+For example, to select ROI on the demo colorectal cancer section:
+```cmd
+python run_roi_selection_single.py --prefix './demo/Tutorial_1_VisiumHD_ROI_selection_colon/' --save_folder './demo/Tutorial_1_VisiumHD_ROI_selection_colon/S2Omics_output' --device 'cuda:0' --roi_size 6.5 6.5 --num_roi 1
+```
+
+To select ROI on the demo consecutive breast cancer sections
+```cmd
+python run_roi_selection_multiple.py --prefix_list './demo/Tutorial_3_Consecutive_ROI_selection_breast/breast_cancer_g1/' './demo/Tutorial_3_Consecutive_ROI_selection_breast/breast_cancer_g2/' './demo/Tutorial_3_Consecutive_ROI_selection_breast/breast_cancer_g3/' --save_folder_list './demo/Tutorial_3_Consecutive_ROI_selection_breast/breast_cancer_g1/S2Omics_output' './demo/Tutorial_3_Consecutive_ROI_selection_breast/breast_cancer_g2/S2Omics_output' './demo/Tutorial_3_Consecutive_ROI_selection_breast/breast_cancer_g3/S2Omics_output' --device 'cuda:0' --roi_size 1.5 1.5 --num_roi 1
+```
+
+To broadcast the cell type label within th selected ROI to the entire slide on the demo colorectal cancer section:
+```cmd
+python run_label_broadcasting.py --WSI_datapath './demo/Tutorial_1_VisiumHD_ROI_selection_colon/' --SO_datapath './demo/Tutorial_1_VisiumHD_ROI_selection_colon/' --WSI_save_folder './demo/Tutorial_1_VisiumHD_ROI_selection_colon/S2Omics_output' --SO_save_folder './demo/Tutorial_1_VisiumHD_ROI_selection_colon/S2Omics_output' --need_preprocess True --need_feature_extraction True
+
 ```
 
 A main output of ROI selection program will be like:
