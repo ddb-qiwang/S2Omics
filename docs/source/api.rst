@@ -5,90 +5,57 @@ Below are the main modules in the S2Omics pipeline, with purpose, CLI parameters
 and I/O descriptions. Autodoc will generate detailed function and class listings from docstrings.
 
 ----------------------------------------
-p1_histology_preprocess
+s2omics.p1_histology_preprocess
 ----------------------------------------
 **Purpose:**  
 Scale and pad raw H&E stained images to a target resolution so that image dimensions are divisible by the patch size.
 
-**Inputs:**
-- Raw image file (`he-raw.jpg` or `.png`/`.tiff`/`.svs`).
-- `pixel-size-raw.txt` – Physical resolution in µm/pixel.
-- `pixel-size.txt` – Target resolution after rescaling (default 0.5 µm).
+**Parameters:**
+- prefix: path to H&E image folder, str
+- show_image: if output the H&E image or not, bool, default = False
 
-**Outputs:**
-- `he-scaled.jpg` – rescaled image.
-- `he.jpg` – scaled + padded image.
-
-**CLI Arguments:**
-
-+----------------+----------+---------------------------------------------+
-| Argument       | Default  | Description                                 |
-+================+==========+=============================================+
-| prefix         | (pos.)   | Path to H&E image folder.                   |
-+----------------+----------+---------------------------------------------+
-
-.. automodule:: p1_histology_preprocess
-   :members:
-   :undoc-members:
-   :show-inheritance:
+**Return:**
+- `he-scaled.jpg`: rescaled image. Saved under prefix folder
+- `he.jpg`: scaled + padded image. Saved under prefix folder
 
 ----------------------------------------
-p2_superpixel_quality_control
+s2omics.p2_superpixel_quality_control
 ----------------------------------------
 **Purpose:**  
 Split histology image (`he.jpg`) into superpixels and filter out tiles without nuclei
-or with low structural quality, using density and texture analysis.
+or with low structural quality, using density and texture analysis. The new version of S2-omics use QC package HistoSweep for this step.
 
-**Outputs:**
-- `qc_preserve_indicator.pickle` – Boolean matrix of valid superpixels.
-- QC mask image (`qc_mask.jpg`).
+**Parameters:**
+- prefix: path to H&E image folder, str
+- save_folder: path to results folder, str
+- density_thresh: HistoSweep parameter, threshold for identifying low density superpixels, int, default=100
+- clean_background_flag: HistoSweep parameter, whether to preserve fibrous regions that are otherwise being incorrectly filtered out, bool, default=False
+- patch_size: the shape of superpixels, int, default=16 means that all superpixels are 16*16 pathces
+- show_image: if output the H&E image or not, bool, default = False
 
-**CLI Arguments:**
-
-+------------------------+----------+---------------------------------------------------+
-| Argument               | Default  | Description                                       |
-+========================+==========+===================================================+
-| prefix                 | (pos.)   | Input histology folder.                           |
-+------------------------+----------+---------------------------------------------------+
-| --save_folder          | S2Omics_output | Output directory name.                      |
-+------------------------+----------+---------------------------------------------------+
-| --patch_size           | 16       | Superpixel dimension (px).                        |
-+------------------------+----------+---------------------------------------------------+
-| --density_thresh       | 100      | RGB density threshold.                            |
-+------------------------+----------+---------------------------------------------------+
-| --clean_background_flag| off      | Preserve fibrous regions if set.                  |
-+------------------------+----------+---------------------------------------------------+
-
-.. automodule:: p2_superpixel_quality_control
-   :members:
+**Return:**
+- `shapes.pickle`: image and superpixel shape information in pickle format, saved under save_folder/pickle_files
+- `qc_preserve_indicator.pickle`: binary mask in pickle format, saved under save_folder/pickle_files
+- `mask-small.png`: binary mask, saved under HistoSweep_output folder
 
 ----------------------------------------
-p3_feature_extraction
+s2omics.p3_feature_extraction
 ----------------------------------------
 **Purpose:**  
 Apply a foundation model (UNI / Virchow / GigaPath) to extract hierarchical features from superpixels.
 
-**Outputs:**
-- Hierarchical embeddings saved in multiple `.pickle` parts.
+**Parameters:**
+- prefix: folder path of H&E stained image, '/home/H&E_image/' for an example
+- save_folder: the name of save folder
+- foundation_model: the name of foundation model used for feature extraction, user can select from uni, virchow and gigapath
+- ckpt_path: the path to foundation model parameter files (should be named as 'pytorch_model.bin'), './checkpoints/uni/' for an example
+- device: default = 'cuda'
+- batch_size: default = 32
+- down_samp_step: the down-sampling step, default = 10 refers to only extract features for superpixels whose row_index and col_index can both be divided by 10 (roughly 1:100 down-sampling rate). down_samp_step = 1 means extract features for every superpixel
+- num_workers: default = 4
 
-**CLI Arguments:**
-
-+-------------------+----------+------------------------------------------------------+
-| Argument          | Default  | Description                                          |
-+===================+==========+======================================================+
-| prefix            | (pos.)   | Input histology folder.                              |
-+-------------------+----------+------------------------------------------------------+
-| --save_folder     | S2Omics_output | Output folder name.                            |
-+-------------------+----------+------------------------------------------------------+
-| --foundation_model| uni      | Base model: uni / virchow / gigapath.                 |
-+-------------------+----------+------------------------------------------------------+
-| --ckpt_path       | ./checkpoints/uni/ | Model checkpoint path.                      |
-+-------------------+----------+------------------------------------------------------+
-| --down_samp_step  | 10       | Downsampling factor.                                  |
-+-------------------+----------+------------------------------------------------------+
-
-.. automodule:: p3_feature_extraction
-   :members:
+**Return:**
+- Hierarchical embeddings saved in multiple `.pickle` parts, saved under save_folder/pickle_files
 
 ----------------------------------------
 p4_get_histology_segmentation
