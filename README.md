@@ -7,11 +7,10 @@ S2-omics is an end-to-end workflow that automatically selects regions of interes
     <img src="/docs/source/images/S2Omics_pipeline.png" alt="S2Omics_pipeline" width="85%">
 </div>
 
-Paper link: https://www.biorxiv.org/content/10.1101/2025.09.21.677634v1
+Paper link: Yuan, M., Jin, K., Yan, H. et al. Smart spatial omics (S2-omics) optimizes region of interest selection to capture molecular heterogeneity in diverse tissues. Nat Cell Biol (2025). https://doi.org/10.1038/s41556-025-01811-w
 
 ReadTheDocs page: https://s2omics.readthedocs.io/en/latest/
 
-The paper is now accepted in principle by **Nature Cell Biology**
 
 # Get started
 To run the tutorials, first please download the demo data and pretrained model checkpoints file from:
