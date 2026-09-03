@@ -8,6 +8,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from s2omics.batch import (
+    SUMMARY_OUTPUT_DIRNAME,
     allocate_output_names,
     build_parser,
     config_from_row,
@@ -191,6 +192,37 @@ class BatchTestCase(unittest.TestCase):
         with summary.open("r", encoding="utf-8-sig", newline="") as handle:
             rows = list(csv.DictReader(handle))
         self.assertEqual([row["status"] for row in rows], ["failed", "success"])
+
+    def test_images_are_collected_by_sample_with_sample_prefixed_names(self):
+        output = self.root / "output"
+        sample = self.config(sample_id="case_001")
+
+        def pipeline(_config, sample_dir):
+            sample_dir.mkdir(parents=True, exist_ok=True)
+            (sample_dir / "he.jpg").write_bytes(b"he")
+            (sample_dir / "he-scaled.jpg").write_bytes(b"scaled")
+            image_files = sample_dir / "S2Omics_output" / "image_files"
+            main_output = sample_dir / "S2Omics_output" / "main_output"
+            image_files.mkdir(parents=True)
+            main_output.mkdir(parents=True)
+            (image_files / "cluster_image.jpg").write_bytes(b"cluster")
+            (image_files / "duplicate.png").write_bytes(b"first")
+            (main_output / "duplicate.png").write_bytes(b"second")
+            (main_output / "not_an_image.pickle").write_bytes(b"ignored")
+
+        with patch("s2omics.batch.run_roi_selection_pipeline", side_effect=pipeline):
+            code = run_batch([sample], output)
+
+        self.assertEqual(code, 0)
+        summary_dir = output / SUMMARY_OUTPUT_DIRNAME / "case_001"
+        self.assertTrue((summary_dir / "case_001_he.jpg").is_file())
+        self.assertTrue((summary_dir / "case_001_he_scaled.jpg").is_file())
+        self.assertTrue((summary_dir / "case_001_cluster_image.jpg").is_file())
+        self.assertTrue((summary_dir / "case_001_duplicate.png").is_file())
+        self.assertTrue((summary_dir / "case_001_duplicate_2.png").is_file())
+        self.assertFalse(any(summary_dir.glob("*.pickle")))
+        self.assertTrue((summary_dir / "case_001_files.csv").is_file())
+        self.assertTrue((output / "case_001" / "he.jpg").is_file())
 
 
 if __name__ == "__main__":

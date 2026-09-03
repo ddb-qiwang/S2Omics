@@ -38,6 +38,13 @@ For per-section settings, use ``--manifest`` with the template in
 ROI-count selection. Use ``--dry-run`` to validate paths and parameters without
 running the computational pipeline.
 
+The original per-sample working directories remain unchanged. In addition, the
+batch runner creates ``summary_outputs/<sample_id>/`` under the output root.
+Each sample folder contains flattened copies of ``he.jpg``, ``he-scaled.jpg``,
+and all images produced below ``S2Omics_output``. Every copied filename begins
+with the resolved sample ID, and ``<sample_id>_files.csv`` maps each copy back to
+its original relative path.
+
 For example, to select ROI on the demo colorectal cancer section:
 
 .. code-block:: bash

@@ -8,6 +8,7 @@ import json
 import math
 import os
 import re
+import shutil
 import sys
 import traceback
 from contextlib import redirect_stderr, redirect_stdout
@@ -22,6 +23,8 @@ SUPPORTED_MODELS = {"uni", "virchow", "gigapath"}
 SUPPORTED_CLUSTERING_METHODS = {
     "kmeans", "fcm", "agglo", "bisect", "birch", "louvain", "leiden"
 }
+SUMMARY_OUTPUT_DIRNAME = "summary_outputs"
+SUMMARY_IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".tif", ".tiff", ".webp"}
 
 MANIFEST_COLUMNS = {
     "image_path", "sample_id", "pixel_size_um", "foundation_model",
@@ -334,6 +337,12 @@ def allocate_output_names(
         for path in output_root.iterdir()
         if path.is_dir()
     } if output_root.exists() else set()
+    summary_root = output_root / SUMMARY_OUTPUT_DIRNAME
+    if summary_root.exists():
+        used.update(
+            path.name.lower() for path in summary_root.iterdir() if path.is_dir()
+        )
+    used.add(SUMMARY_OUTPUT_DIRNAME.lower())
     resolved = []
     for sample in samples:
         candidate = sample.sample_id
@@ -468,6 +477,59 @@ def _write_csv(path: Path, rows: Sequence[Mapping[str, Any]]) -> None:
     temporary.replace(path)
 
 
+def _summary_filename(sample_id: str, source: Path, used: set[str]) -> str:
+    stem = re.sub(r"[^0-9A-Za-z._-]+", "_", source.stem).strip("._-") or "image"
+    stem = stem.replace("-", "_")
+    suffix = source.suffix.lower()
+    candidate = f"{sample_id}_{stem}{suffix}"
+    serial = 1
+    while candidate.lower() in used:
+        serial += 1
+        candidate = f"{sample_id}_{stem}_{serial}{suffix}"
+    used.add(candidate.lower())
+    return candidate
+
+
+def collect_sample_images(
+    sample: SampleConfig, sample_output_dir: Path, summary_root: Path
+) -> Path:
+    """Copy user-facing images into a flat, sample-named summary directory."""
+    sample_id = str(sample.resolved_sample_id or sample.sample_id)
+    destination_dir = summary_root / sample_id
+    destination_dir.mkdir(parents=True, exist_ok=False)
+
+    sources = [
+        path for path in (
+            sample_output_dir / "he.jpg",
+            sample_output_dir / "he-scaled.jpg",
+        ) if path.is_file()
+    ]
+    s2omics_output = sample_output_dir / "S2Omics_output"
+    if s2omics_output.exists():
+        sources.extend(sorted(
+            path for path in s2omics_output.rglob("*")
+            if path.is_file() and path.suffix.lower() in SUMMARY_IMAGE_SUFFIXES
+        ))
+
+    used: set[str] = set()
+    records: list[dict[str, Any]] = []
+    for source in sources:
+        filename = _summary_filename(sample_id, source, used)
+        destination = destination_dir / filename
+        shutil.copy2(source, destination)
+        records.append({
+            "sample_id": sample.sample_id,
+            "resolved_sample_id": sample_id,
+            "file_name": filename,
+            "source_relative_path": str(source.relative_to(sample_output_dir)),
+            "size_bytes": destination.stat().st_size,
+        })
+
+    if records:
+        _write_csv(destination_dir / f"{sample_id}_files.csv", records)
+    return destination_dir
+
+
 def _unique_batch_file(output_root: Path, stem: str) -> Path:
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     candidate = output_root / f"{stem}_{timestamp}.csv"
@@ -500,6 +562,8 @@ def run_batch(
         return 0
 
     output_root.mkdir(parents=True, exist_ok=True)
+    summary_root = output_root / SUMMARY_OUTPUT_DIRNAME
+    summary_root.mkdir(exist_ok=True)
     resolved_manifest = _unique_batch_file(output_root, "resolved_manifest")
     summary_path = _unique_batch_file(output_root, "batch_summary")
     _write_csv(resolved_manifest, [_manifest_record(sample) for sample in resolved])
@@ -508,6 +572,7 @@ def run_batch(
     failures = 0
     for sample in resolved:
         output_dir = output_root / str(sample.resolved_sample_id)
+        summary_output_dir = summary_root / str(sample.resolved_sample_id)
         output_dir.mkdir(parents=False, exist_ok=False)
         config_path = output_dir / "resolved_config.json"
         status_path = output_dir / "run_status.json"
@@ -530,6 +595,8 @@ def run_batch(
                 with redirect_stdout(stdout_tee), redirect_stderr(stderr_tee):
                     print(f"[{started_at}] Starting {sample.resolved_sample_id}")
                     run_roi_selection_pipeline(sample, output_dir)
+                    collect_sample_images(sample, output_dir, summary_root)
+                    print(f"Summary images: {summary_output_dir}")
             result = "success"
         except Exception:
             failures += 1
@@ -554,6 +621,7 @@ def run_batch(
             "num_roi": sample.num_roi,
             "status": result,
             "output_dir": str(output_dir),
+            "summary_output_dir": str(summary_output_dir),
             "started_at": started_at,
             "finished_at": finished_at,
             "error": error,

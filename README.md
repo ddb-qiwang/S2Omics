@@ -89,10 +89,15 @@ the requested number of ROIs; `0` keeps the original automatic-selection
 behavior. Blank parameter cells inherit command-line defaults. Cluster lists use
 semicolon-separated values, for example `1;3;5`.
 
-The output root contains one directory per resolved sample plus timestamped
-`resolved_manifest_*.csv` and `batch_summary_*.csv` files. A failed sample is
-recorded and does not prevent later samples from running; the process exits with
-a nonzero status if any sample failed.
+The output root contains one full working directory per resolved sample plus
+timestamped `resolved_manifest_*.csv` and `batch_summary_*.csv` files. It also
+creates `summary_outputs/<sample_id>/`, which collects `he.jpg`,
+`he-scaled.jpg`, and every image below that sample's `S2Omics_output`. These
+copies are flattened and prefixed with the resolved sample ID, for example
+`case_001_best_roi_on_he.jpg`. `<sample_id>_files.csv` records the original path
+of each collected image. A failed sample is recorded and does not prevent later
+samples from running; the process exits with a nonzero status if any sample
+failed.
 
 To select ROI on the demo consecutive breast cancer sections
 ```cmd
