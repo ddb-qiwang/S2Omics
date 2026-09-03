@@ -68,6 +68,7 @@ nvidia-cusparse-cu11==11.7.4.91
 nvidia-nccl-cu11==2.14.3
 nvidia-nvtx-cu11==11.7.91
 opencv-python==4.8.1.78
+openpyxl==3.1.5
 packaging==25.0
 pandas==2.3.1
 parso==0.8.4

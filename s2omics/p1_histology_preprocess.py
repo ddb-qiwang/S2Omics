@@ -45,13 +45,31 @@ def adjust_margins(img, pad, pad_value=None):
             img, extent, mode=mode, constant_values=pad_value)
     return img
 
-def histology_preprocess(prefix, show_image=False):
-    
-    pixel_size_raw = float(read_string(prefix+'pixel-size-raw.txt'))
+def histology_preprocess(prefix, show_image=False, raw_image_path=None,
+                         pixel_size_raw=None):
+    """Preprocess a raw histology image for the S2Omics pipeline.
+
+    ``raw_image_path`` and ``pixel_size_raw`` allow callers to process images
+    without first copying or renaming them to ``he-raw.*`` and creating a
+    ``pixel-size-raw.txt`` sidecar.  Omitting both arguments preserves the
+    original directory-based interface used by the tutorials.
+    """
+    if pixel_size_raw is None:
+        pixel_size_raw = float(read_string(prefix+'pixel-size-raw.txt'))
+    else:
+        pixel_size_raw = float(pixel_size_raw)
+    if pixel_size_raw <= 0:
+        raise ValueError('pixel_size_raw must be greater than 0')
+
+    if raw_image_path is None:
+        raw_image_path = get_image_filename(prefix+'he-raw')
+    elif not os.path.isfile(raw_image_path):
+        raise FileNotFoundError(f'Raw histology image not found: {raw_image_path}')
+
     pixel_size = 0.5
     scale = pixel_size_raw / pixel_size
 
-    img = load_image(get_image_filename(prefix+'he-raw'))
+    img = load_image(raw_image_path)
     img = img.astype(np.float32)
     print(f'Rescaling image (scale: {scale:.3f})...')
     t0 = time()

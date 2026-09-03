@@ -11,6 +11,33 @@ Please place both 'checkpoints' and 'demo' folder under the 'S2Omics' main folde
 
 User can either refer to the tutorial notebooks or run the python codes in the main folder.
 
+Batch ROI selection
+-------------------
+
+Independent sections can be processed sequentially from a directory of SVS
+files or from a CSV, TSV, or XLSX manifest. Each section receives an isolated
+output directory, and duplicate sample names are suffixed instead of overwriting
+earlier results.
+
+.. code-block:: bash
+
+   python run_roi_selection_batch.py \
+     --input-dir /data/he_svs \
+     --output-root /data/s2omics_output \
+     --pixel-size-um 0.5 \
+     --ckpt-path /models/uni \
+     --roi-shape rectangle \
+     --roi-width-mm 6.5 \
+     --roi-height-mm 6.5 \
+     --num-roi 1
+
+For per-section settings, use ``--manifest`` with the template in
+``examples/roi_batch_manifest.xlsx``. The ``roi_shape`` column accepts
+``rectangle`` or ``circle``. Rectangles use ``roi_width_mm`` and
+``roi_height_mm``; circles use ``roi_radius_mm``. ``num_roi=0`` enables automatic
+ROI-count selection. Use ``--dry-run`` to validate paths and parameters without
+running the computational pipeline.
+
 For example, to select ROI on the demo colorectal cancer section:
 
 .. code-block:: bash
