@@ -49,6 +49,56 @@ For example, to select ROI on the demo colorectal cancer section:
 python run_roi_selection_single.py --prefix './demo/Tutorial_1_VisiumHD_ROI_selection_colon/' --save_folder './demo/Tutorial_1_VisiumHD_ROI_selection_colon/S2Omics_output' --device 'cuda:0' --roi_size 6.5 6.5 --num_roi 1
 ```
 
+### Batch ROI selection for independent sections
+
+`run_roi_selection_batch.py` processes independent H&E sections sequentially and
+creates a separate output directory for every image. Existing output names are
+never overwritten: repeated names are suffixed with `-1`, `-2`, and so on.
+
+Process all SVS files in one directory with shared parameters:
+
+```bash
+python run_roi_selection_batch.py \
+  --input-dir /data/he_svs \
+  --output-root /data/s2omics_output \
+  --pixel-size-um 0.5 \
+  --ckpt-path /models/uni \
+  --roi-shape rectangle \
+  --roi-width-mm 6.5 \
+  --roi-height-mm 6.5 \
+  --num-roi 1
+```
+
+Use `--recursive` to search nested directories. Use `--dry-run` to validate all
+inputs and show the resolved output names without starting the pipeline.
+
+For per-image parameters, pass a CSV, TSV, or XLSX manifest. Ready-to-edit
+templates are provided in `examples/roi_batch_manifest.csv` and
+`examples/roi_batch_manifest.xlsx`.
+
+```bash
+python run_roi_selection_batch.py \
+  --manifest examples/roi_batch_manifest.xlsx \
+  --manifest-sheet Samples \
+  --output-root /data/s2omics_output
+```
+
+Each manifest row may select `roi_shape=rectangle` with `roi_width_mm` and
+`roi_height_mm`, or `roi_shape=circle` with `roi_radius_mm`. `num_roi` specifies
+the requested number of ROIs; `0` keeps the original automatic-selection
+behavior. Blank parameter cells inherit command-line defaults. Cluster lists use
+semicolon-separated values, for example `1;3;5`.
+
+The output root contains one full working directory per resolved sample plus
+timestamped `resolved_manifest_*.csv` and `batch_summary_*.csv` files. It also
+creates `summary_outputs/<sample_id>/`, which collects `he.jpg`,
+`he-scaled.jpg`, and every image below that sample's `S2Omics_output`. These
+copies are flattened and prefixed with the resolved sample ID, for example
+`case_001_best_roi_on_he.jpg`. `<sample_id>_files.csv` records the original path
+of each collected image. A failed sample is recorded and does not prevent later
+samples from running; the process exits with a nonzero status if any sample
+failed.
+
 To select ROI on the demo consecutive breast cancer sections
 ```cmd
 python run_roi_selection_multiple.py --prefix_list './demo/Tutorial_3_Consecutive_ROI_selection_breast/breast_cancer_g1/' './demo/Tutorial_3_Consecutive_ROI_selection_breast/breast_cancer_g2/' './demo/Tutorial_3_Consecutive_ROI_selection_breast/breast_cancer_g3/' --save_folder_list './demo/Tutorial_3_Consecutive_ROI_selection_breast/breast_cancer_g1/S2Omics_output' './demo/Tutorial_3_Consecutive_ROI_selection_breast/breast_cancer_g2/S2Omics_output' './demo/Tutorial_3_Consecutive_ROI_selection_breast/breast_cancer_g3/S2Omics_output' --device 'cuda:0' --roi_size 1.5 1.5 --num_roi 1
